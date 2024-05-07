@@ -2,7 +2,7 @@
 
 Instalacion:
 
-pip install django
+pip install django \n
 pip install djangorestframework
 pip install django-cors-headers
 pip install mysqlclient
