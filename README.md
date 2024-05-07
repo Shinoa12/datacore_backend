@@ -1,12 +1,21 @@
-# datacore_backend
+# DataCore — Backend
 
-pip install django, 
-pip install djangorestframework, 
-pip install django-cors-headers, 
-pip install mysqlclient 
+Sigue los pasos siguientes para configurar tu entorno e iniciar el servidor.
 
-# para migrar el modelo a la db
+## Instalar las dependencias necesarias
+
+```shell
+pip install -r requirements.txt
+```
+
+## Migrar la base de datos
+
+```shell
 python manage.py migrate
+```
 
-# para ejecutar
+## Iniciar el servidor
+
+```shell
 python manage.py runserver
+```
