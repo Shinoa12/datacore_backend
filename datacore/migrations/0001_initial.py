@@ -20,4 +20,11 @@ class Migration(migrations.Migration):
                 ('foundation', models.PositiveIntegerField()),
             ],
         ),
+        migrations.CreateModel(
+            name='Rol',
+            fields=[
+                ('id_rol', models.IntegerField(auto_created=True,primary_key=True)),
+                ('nombre', models.CharField(max_length=200)),               
+            ],
+        ),
     ]
