@@ -36,6 +36,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Configurar las variables de entorno
+
+Crea un archivo con el nombre `.env` en la raíz del directorio del proyecto y agrega las variables de entorno siguientes con los **valores específicos** que correspondan a tu entorno de desarrollo.
+
+```shell
+SECRET_KEY=CLAVE_SECRETA
+DB_HOST=TU_HOST
+DB_PORT=TU_PUERTO
+DB_USER=TU_USUARIO
+DB_PASS=TU_CONTRASEÑA
+DB_NAME=TU_NOMBRE
+```
+
 ## Migrar la base de datos
 
 ```shell
