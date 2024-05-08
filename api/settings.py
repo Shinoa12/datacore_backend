@@ -95,9 +95,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': 'localhost',
-        'PORT': '3307',
+        'PORT': '3306',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': 'admin',
         'NAME': 'datacore',
         'OPTIONS' : {
             'init_command' : "SET sql_mode='STRICT_TRANS_TABLES'"
@@ -147,6 +147,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #Cors authorization
-CORS_ALLOWED_ORIGIN = [
-    ""
-]
+CORS_ALLOW_ALL_ORIGINS = True
+
+
+# settings.py
+AUTH_USER_MODEL = 'datacore.User'
+

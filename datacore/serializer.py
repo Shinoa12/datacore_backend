@@ -1,13 +1,21 @@
 from rest_framework import serializers
-from .models import Company
-from .models import Rol
+from .models import  Facultad , Especialidad , EstadoPersona 
 
-class CompanySerializer(serializers.ModelSerializer):
+
+class FacultadSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Company
+        model = Facultad
         fields = '__all__'
 
-class RolSerializer(serializers.ModelSerializer):
+class EspecialidadSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Rol
+        model = Especialidad
         fields = '__all__'
+
+class EstadoPersonaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstadoPersona
+        fields = '__all__'
+
+
+
