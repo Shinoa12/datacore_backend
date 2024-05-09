@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import  Facultad , Especialidad , EstadoPersona , CPU , GPU
+from .models import  Facultad , Especialidad , EstadoPersona , CPU , GPU, User
 
 
 class FacultadSerializer(serializers.ModelSerializer):
@@ -25,6 +25,11 @@ class CPUSerializer(serializers.ModelSerializer):
 class GPUSerializer(serializers.ModelSerializer):
     class Meta:
         model = GPU
+        fields = '__all__'
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
         fields = '__all__'
 
 

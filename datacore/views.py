@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
-from .models import Facultad , Especialidad , EstadoPersona , CPU , GPU
-from .serializer import FacultadSerializer , EspecialidadSerializer , EstadoPersonaSerializer , CPUSerializer , GPUSerializer
+from .models import Facultad , Especialidad , EstadoPersona , CPU , GPU, User
+from .serializer import FacultadSerializer , EspecialidadSerializer , EstadoPersonaSerializer , CPUSerializer , GPUSerializer, UserSerializer
 
 # Create your views here.
 
@@ -32,6 +32,10 @@ class CPUViewSet(viewsets.ModelViewSet):
 class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
     serializer_class = GPUSerializer
+
+class UsersViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
     
 
 
