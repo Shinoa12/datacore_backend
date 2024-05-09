@@ -15,9 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
+from datacore.views import VerifyTokenView,GoogleLoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('datacore/',include('datacore.urls'))
+    path('datacore/', include('datacore.urls')),
+    path('auth/', include('dj_rest_auth.urls')),
+    path('auth/registration/', include('dj_rest_auth.registration.urls')),
+    path('auth/social/', include('allauth.socialaccount.urls')),
+    path('user/token/verify/', VerifyTokenView.as_view(), name='token_verify'),
+    path('user/login-with-google/', GoogleLoginView.as_view(), name='login_with_google'),
 ]
