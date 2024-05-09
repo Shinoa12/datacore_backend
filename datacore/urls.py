@@ -6,6 +6,8 @@ router = routers.DefaultRouter()
 router.register(r'facultades',views.FacultadViewSet , 'facultades')
 router.register(r'especialidades',views.EspecialidadViewSet , 'especialidades')
 router.register(r'estadosPersonas',views.EstadoPersonaViewSet , 'estadosPersonas')
+router.register(r'cpus',views.CPUViewSet , 'cpus')
+router.register(r'gpus',views.GPUViewSet , 'gpus')
 
 urlpatterns = [
     path('api/v1/',include(router.urls)),
