@@ -3,6 +3,10 @@ from rest_framework.documentation import include_docs_urls
 from rest_framework import routers
 from datacore import views
 
+especialidades_por_facultad = views.EspecialidadViewSet.as_view(
+    {"get": "list_por_facultad"}
+)
+
 router = routers.DefaultRouter()
 
 router.register(r"facultades", views.FacultadViewSet, "facultades")
@@ -17,7 +21,7 @@ urlpatterns = [
     path("docs/", include_docs_urls(title="DataCore API")),
     path(
         "api/v1/especialidades/porFacultad/<int:id_facultad>/",
-        views.EspecialidadViewSet.as_view({"get": "getEspecialidadesPorFacultad"}),
+        especialidades_por_facultad,
         name="especialidadesPorFacultad",
     ),
 ]
