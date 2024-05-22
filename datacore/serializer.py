@@ -47,6 +47,12 @@ class GPUSerializer(serializers.ModelSerializer):
         model = GPU
         fields = "__all__"
 
+    def create(self, validated_data):
+        recurso_data = validated_data.pop("id_recurso")
+        recurso_instance = Recurso.objects.create(**recurso_data)
+        gpu_instance = GPU.objects.create(id_recurso=recurso_instance, **validated_data)
+        return gpu_instance
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
