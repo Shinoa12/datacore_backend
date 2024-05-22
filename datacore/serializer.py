@@ -33,6 +33,12 @@ class CPUSerializer(serializers.ModelSerializer):
         model = CPU
         fields = "__all__"
 
+    def create(self, validated_data):
+        recurso_data = validated_data.pop("id_recurso")
+        recurso_instance = Recurso.objects.create(**recurso_data)
+        cpu_instance = CPU.objects.create(id_recurso=recurso_instance, **validated_data)
+        return cpu_instance
+
 
 class GPUSerializer(serializers.ModelSerializer):
     id_recurso = RecursoSerializer()
@@ -40,6 +46,12 @@ class GPUSerializer(serializers.ModelSerializer):
     class Meta:
         model = GPU
         fields = "__all__"
+
+    def create(self, validated_data):
+        recurso_data = validated_data.pop("id_recurso")
+        recurso_instance = Recurso.objects.create(**recurso_data)
+        gpu_instance = GPU.objects.create(id_recurso=recurso_instance, **validated_data)
+        return gpu_instance
 
 
 class UserSerializer(serializers.ModelSerializer):
