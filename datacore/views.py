@@ -1,7 +1,5 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
-from .models import Facultad , Especialidad , EstadoPersona , User 
-from .serializer import FacultadSerializer , EspecialidadSerializer , EstadoPersonaSerializer
 from .utils import get_id_token_with_code_method_1, get_id_token_with_code_method_2
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,6 +12,17 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 import logging
 # Create your views here.
+from rest_framework.decorators import action
+from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User
+from .serializer import (
+    FacultadSerializer,
+    EspecialidadSerializer,
+    EstadoPersonaSerializer,
+    CPUSerializer,
+    GPUSerializer,
+    UserSerializer,
+)
+
 
 # Configurar el logger
 logger = logging.getLogger(__name__)
@@ -27,16 +36,15 @@ class EstadoPersonaViewSet(viewsets.ModelViewSet):
     serializer_class = EstadoPersonaSerializer
 
 
-class EspecialidadViewSet(viewsets.ModelViewSet) : 
+class EspecialidadViewSet(viewsets.ModelViewSet):
     queryset = Especialidad.objects.all()
     serializer_class = EspecialidadSerializer
 
-    #Metodo que lista todas las especialidades de una facultad
-    def getEspecialidadesPorFacultad(self, request, id_facultad):
-        especialidades = self.queryset.filter(id_facultad_id = id_facultad)
+    # Método que lista todas las especialidades de una facultad
+    def list_por_facultad(self, request, id_facultad):
+        especialidades = self.queryset.filter(id_facultad_id=id_facultad)
         serializer = self.get_serializer(especialidades, many=True)
         return Response(serializer.data)
-    
 
 def generate_tokens_for_user(user):
     """
@@ -91,3 +99,16 @@ class LoginWithGoogle(APIView):
         except Exception as e:
             logger.error("Error in LoginWithGoogle: %s", e, exc_info=True)
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class CPUViewSet(viewsets.ModelViewSet):
+    queryset = CPU.objects.all()
+    serializer_class = CPUSerializer
+
+
+class GPUViewSet(viewsets.ModelViewSet):
+    queryset = GPU.objects.all()
+    serializer_class = GPUSerializer
+
+
+class UsersViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
