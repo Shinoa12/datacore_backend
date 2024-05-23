@@ -24,6 +24,7 @@ python -m venv .venv
 .\.venv\Scripts\activate.ps1
 ```
 
+
 ### macOS/Linux
 
 ```shell
@@ -41,12 +42,14 @@ pip install -r requirements.txt
 Crea un archivo con el nombre `.env` en la raíz del directorio del proyecto y agrega las variables de entorno siguientes con los **valores específicos** que correspondan a tu entorno de desarrollo.
 
 ```shell
-SECRET_KEY=TU_CLAVE_SECRETA
-DB_HOST=HOST_BD
-DB_PORT=PUERTO_BD
-DB_USER=USUARIO_BD
-DB_PASS=CONTRASEÑA_BD
-DB_NAME=NOMBRE_BD
+SECRET_KEY=CLAVE_SECRETA
+DB_HOST=TU_HOST
+DB_PORT=TU_PUERTO
+DB_USER=TU_USUARIO
+DB_PASS=TU_CONTRASEÑA
+DB_NAME=TU_NOMBRE
+SOCIAL_AUTH_GOOGLE_CLIENT_ID='722348533329-fcvbgk9bl8qerclkpoav4quk9gcsfbnl.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_SECRET='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'
 ```
 
 ## Migrar la base de datos

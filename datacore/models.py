@@ -29,7 +29,8 @@ class User(AbstractUser):
         Especialidad, on_delete=models.CASCADE, null=False
     )
     id_facultad = models.ForeignKey(Facultad, on_delete=models.CASCADE, null=False)
-
+    def __str__(self):
+       return self.username
 
 class Recurso(models.Model):
     id_recurso = models.AutoField(primary_key=True)
