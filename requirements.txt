@@ -11,3 +11,4 @@ dj-rest-auth
 djangorestframework-simplejwt
 python-dotenv
 cryptography
+oauth2client

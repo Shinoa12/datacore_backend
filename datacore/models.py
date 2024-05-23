@@ -20,6 +20,8 @@ class User(AbstractUser):
     recursos_max = models.PositiveIntegerField(default=1)
     id_estado_persona = models.ForeignKey(EstadoPersona, on_delete=models.CASCADE, null=False)
     id_especialidad = models.ForeignKey(Especialidad, on_delete=models.CASCADE, null=False)
+    def __str__(self):
+       return self.username
 
 class Recurso(models.Model) : 
     id_recurso = models.AutoField(primary_key=True)

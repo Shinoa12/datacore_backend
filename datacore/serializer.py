@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import  Facultad , Especialidad , EstadoPersona 
+from .models import  Facultad , Especialidad , EstadoPersona , User
 
 
 class FacultadSerializer(serializers.ModelSerializer):
@@ -17,5 +17,8 @@ class EstadoPersonaSerializer(serializers.ModelSerializer):
         model = EstadoPersona
         fields = '__all__'
 
-
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
 

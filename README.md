@@ -24,6 +24,7 @@ python -m venv .venv
 .\.venv\Scripts\activate.ps1
 ```
 
+
 ### macOS/Linux
 
 ```shell
@@ -47,6 +48,8 @@ DB_PORT=TU_PUERTO
 DB_USER=TU_USUARIO
 DB_PASS=TU_CONTRASEÑA
 DB_NAME=TU_NOMBRE
+SOCIAL_AUTH_GOOGLE_CLIENT_ID='722348533329-fcvbgk9bl8qerclkpoav4quk9gcsfbnl.apps.googleusercontent.com'
+SOCIAL_AUTH_GOOGLE_SECRET='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'
 ```
 
 ## Migrar la base de datos
