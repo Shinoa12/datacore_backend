@@ -24,8 +24,6 @@ from .serializer import (
 )
 
 
-# Configurar el logger
-logger = logging.getLogger(__name__)
 class FacultadViewSet(viewsets.ModelViewSet):
     queryset = Facultad.objects.all()
     serializer_class = FacultadSerializer
@@ -63,11 +61,13 @@ def authenticate_or_create_user(email):
         # Obtener valores predeterminados específicos por sus IDs
         default_estado_persona = EstadoPersona.objects.get(id_estado_persona=1)
         default_especialidad = Especialidad.objects.get(id_especialidad=1)
+        default_facultad = Facultad.objects.get(id_facultad=1)
         user = User.objects.create_user(
             username=email,
             email=email,
             id_estado_persona=default_estado_persona,
-            id_especialidad=default_especialidad
+            id_especialidad=default_especialidad,
+            id_facultad=default_facultad
         )
     return user
 
@@ -97,8 +97,8 @@ class LoginWithGoogle(APIView):
                 })
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error("Error in LoginWithGoogle: %s", e, exc_info=True)
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class CPUViewSet(viewsets.ModelViewSet):
     queryset = CPU.objects.all()
     serializer_class = CPUSerializer
