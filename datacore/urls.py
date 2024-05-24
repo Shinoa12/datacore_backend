@@ -26,6 +26,8 @@ urlpatterns = [
         especialidades_por_facultad,
         name="especialidadesPorFacultad",
     ),
-    path('api/v1/login-with-google/', LoginWithGoogle.as_view(), name = 'login-with-google'),
-    path('api/v1/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path(
+        "api/v1/login-with-google/", LoginWithGoogle.as_view(), name="login-with-google"
+    ),
+    path("api/v1/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
 ]

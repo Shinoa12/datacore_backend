@@ -19,10 +19,12 @@ class EstadoPersonaSerializer(serializers.ModelSerializer):
         model = EstadoPersona
         fields = "__all__"
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = "__all__"
+
 
 class RecursoSerializer(serializers.ModelSerializer):
     class Meta:
