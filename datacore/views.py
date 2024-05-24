@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from .utils import get_id_token_with_code_method_1, get_id_token_with_code_method_2
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,8 +12,6 @@ from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 import logging
-# Create your views here.
-from rest_framework.decorators import action
 from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User
 from .serializer import (
     FacultadSerializer,
@@ -44,6 +43,22 @@ class EspecialidadViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(especialidades, many=True)
         return Response(serializer.data)
 
+
+class CPUViewSet(viewsets.ModelViewSet):
+    queryset = CPU.objects.all()
+    serializer_class = CPUSerializer
+
+
+class GPUViewSet(viewsets.ModelViewSet):
+    queryset = GPU.objects.all()
+    serializer_class = GPUSerializer
+
+
+class UsersViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
 def generate_tokens_for_user(user):
     """
     Generate access and refresh tokens for the given user
@@ -53,6 +68,7 @@ def generate_tokens_for_user(user):
     access_token = token_data.access_token
     refresh_token = token_data
     return access_token, refresh_token
+
 
 def authenticate_or_create_user(email):
     try:
@@ -67,48 +83,43 @@ def authenticate_or_create_user(email):
             email=email,
             id_estado_persona=default_estado_persona,
             id_especialidad=default_especialidad,
-            id_facultad=default_facultad
+            id_facultad=default_facultad,
         )
     return user
+
 
 class LoginWithGoogle(APIView):
     def post(self, request):
         try:
-            if 'code' in request.data.keys():
-                code = request.data['code']
+            if "code" in request.data.keys():
+                code = request.data["code"]
                 id_token = get_id_token_with_code_method_2(code)
                 if id_token is None:
-                    return Response({'error': 'Invalid code'}, status=status.HTTP_400_BAD_REQUEST)
-                
-                user_email = id_token['email']
-                first_name = id_token.get('given_name', '')
-                last_name = id_token.get('family_name', '')
+                    return Response(
+                        {"error": "Invalid code"}, status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                user_email = id_token["email"]
+                first_name = id_token.get("given_name", "")
+                last_name = id_token.get("family_name", "")
 
                 user = authenticate_or_create_user(user_email)
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
-                
-                return Response({
-                    'access_token': str(token), 
-                    'username': user_email, 
-                    'refresh_token': str(refresh), 
-                    'first_name': first_name, 
-                    'last_name': last_name
-                })
-            return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+                return Response(
+                    {
+                        "access_token": str(token),
+                        "username": user_email,
+                        "refresh_token": str(refresh),
+                        "first_name": first_name,
+                        "last_name": last_name,
+                    }
+                )
+            return Response(
+                {"error": "No code provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-class CPUViewSet(viewsets.ModelViewSet):
-    queryset = CPU.objects.all()
-    serializer_class = CPUSerializer
-
-
-class GPUViewSet(viewsets.ModelViewSet):
-    queryset = GPU.objects.all()
-    serializer_class = GPUSerializer
-
-
-class UsersViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
