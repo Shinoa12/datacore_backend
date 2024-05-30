@@ -45,6 +45,20 @@ class CPUSerializer(serializers.ModelSerializer):
         cpu_instance = CPU.objects.create(id_recurso=recurso_instance, **validated_data)
         return cpu_instance
 
+    def update(self, instance, validated_data):
+        recurso_data = validated_data.pop("id_recurso", None)
+
+        if recurso_data:
+            for attr, value in recurso_data.items():
+                setattr(instance.id_recurso, attr, value)
+            instance.id_recurso.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+
 
 class GPUSerializer(serializers.ModelSerializer):
     id_recurso = RecursoSerializer()
