@@ -57,6 +57,10 @@ class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
     serializer_class = GPUSerializer
 
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
+
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
