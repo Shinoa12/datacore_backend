@@ -10,6 +10,9 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from datacore.permissions import IsAdmin, IsUser
+from django.contrib.auth.models import Group
 import logging
 # Create your views here.
 from rest_framework.decorators import action
@@ -54,12 +57,12 @@ def generate_tokens_for_user(user):
     refresh_token = token_data
     return access_token, refresh_token
 
-def authenticate_or_create_user(email):
+def authenticate_or_create_user(email,fname,lname):
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         # Obtener valores predeterminados específicos por sus IDs
-        default_estado_persona = EstadoPersona.objects.get(id_estado_persona=1)
+        default_estado_persona = EstadoPersona.objects.get(id_estado_persona=3)
         default_especialidad = Especialidad.objects.get(id_especialidad=1)
         default_facultad = Facultad.objects.get(id_facultad=1)
         user = User.objects.create_user(
@@ -67,8 +70,12 @@ def authenticate_or_create_user(email):
             email=email,
             id_estado_persona=default_estado_persona,
             id_especialidad=default_especialidad,
-            id_facultad=default_facultad
+            id_facultad=default_facultad,
+            first_name=fname,
+            last_name=lname
         )
+        default_group = Group.objects.get(name='USER')
+        user.groups.add(default_group)
     return user
 
 class LoginWithGoogle(APIView):
@@ -84,7 +91,7 @@ class LoginWithGoogle(APIView):
                 first_name = id_token.get('given_name', '')
                 last_name = id_token.get('family_name', '')
 
-                user = authenticate_or_create_user(user_email)
+                user = authenticate_or_create_user(user_email,first_name,last_name)
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
                 
@@ -93,21 +100,33 @@ class LoginWithGoogle(APIView):
                     'username': user_email, 
                     'refresh_token': str(refresh), 
                     'first_name': first_name, 
-                    'last_name': last_name
+                    'last_name': last_name,
+                    'is_admin': user.groups.filter(name='ADMIN').exists()
                 })
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminOnlyView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        return Response({"message": "Hello, admin!"})
+
+class UserOnlyView(APIView):
+    permission_classes = [IsAuthenticated, IsUser]
+
+    def get(self, request):
+        return Response({"message": "Hello, user!"})
         
 class CPUViewSet(viewsets.ModelViewSet):
     queryset = CPU.objects.all()
     serializer_class = CPUSerializer
 
-
 class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
     serializer_class = GPUSerializer
-
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
