@@ -17,6 +17,7 @@ router.register(r"estadosPersonas", views.EstadoPersonaViewSet, "estadosPersonas
 router.register(r"cpus", views.CPUViewSet, "cpus")
 router.register(r"gpus", views.GPUViewSet, "gpus")
 router.register(r"users", views.UsersViewSet, "users")
+router.register(r"solicitudes", views.SolicitudViewSet, "solicitudes")
 
 urlpatterns = [
     path("api/v1/", include(router.urls)),

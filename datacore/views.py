@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 import logging
-from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User
+from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User , Solicitud
 from .serializer import (
     FacultadSerializer,
     EspecialidadSerializer,
@@ -23,6 +23,7 @@ from .serializer import (
     CPUSerializer,
     GPUSerializer,
     UserSerializer,
+    SolicitudSerializer
 )
 
 
@@ -68,6 +69,26 @@ class GPUViewSet(viewsets.ModelViewSet):
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+class SolicitudViewSet(viewsets.ModelViewSet) : 
+    queryset = Solicitud.objects.all()
+    serializer_class = SolicitudSerializer
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        id_recurso = data.get('id_recurso')
+        id_user = data.get('id_user')
+        execution_parameters = data.get('execution_parameters')
+         # Crea la instancia de Solicitud
+        solicitud = Solicitud.objects.create(
+            recurso=id_recurso,
+            user=id_user,
+            execution_parameters=execution_parameters
+        )
+        # Serializa y devuelve la respuesta
+        serializer = self.get_serializer(data)
+        return Response(serializer.data)
 
 
 def generate_tokens_for_user(user):

@@ -1,11 +1,17 @@
 from rest_framework import serializers
-from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, Recurso, User
+from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, Recurso, User , Solicitud
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class FacultadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Facultad
         fields = "__all__"
+
+
+class SolicitudSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Solicitud
+        fields = ['id_recurso', 'id_user', 'parametros_ejecucion']
 
 
 class EspecialidadSerializer(serializers.ModelSerializer):
