@@ -121,21 +121,18 @@ class LoginWithGoogle(APIView):
                 user = authenticate_or_create_user(user_email, first_name, last_name)
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
-
-                return Response(
-                    {
-                        "access_token": str(token),
-                        "username": user_email,
-                        "refresh_token": str(refresh),
-                        "first_name": first_name,
-                        "last_name": last_name,
-                        "is_admin": user.groups.filter(name="ADMIN").exists(),
-                        "estado": user.id_estado_persona.id_estado_persona,
-                    }
-                )
-            return Response(
-                {"error": "No code provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
+                
+                return Response({
+                    'access_token': str(token), 
+                    'username': user_email, 
+                    'refresh_token': str(refresh), 
+                    'first_name': first_name, 
+                    'last_name': last_name,
+                    'is_admin': user.groups.filter(name='ADMIN').exists(),
+                    'estado':user.id_estado_persona.id_estado_persona,
+                    'id_user':user.id
+                })
+            return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
