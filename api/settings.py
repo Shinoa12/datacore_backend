@@ -156,10 +156,6 @@ CORS_ALLOW_HEADERS = [
 ]
 
 
-# CoreAPI
-REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema"}
-
-
 # settings.py
 AUTH_USER_MODEL = "datacore.User"
 
@@ -218,3 +214,9 @@ SIMPLE_JWT = {
 
     'TOKEN_OBTAIN_SERIALIZER': 'datacore.serializers.MyTokenObtainPairSerializer',
 }
+
+
+# CoreAPI
+REST_FRAMEWORK.update(
+    {"DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema"}
+)

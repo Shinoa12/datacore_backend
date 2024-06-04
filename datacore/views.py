@@ -80,7 +80,8 @@ def generate_tokens_for_user(user):
     refresh_token = token_data
     return access_token, refresh_token
 
-def authenticate_or_create_user(email,fname,lname):
+
+def authenticate_or_create_user(email, fname, lname):
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
@@ -95,9 +96,9 @@ def authenticate_or_create_user(email,fname,lname):
             id_especialidad=default_especialidad,
             id_facultad=default_facultad,
             first_name=fname,
-            last_name=lname
+            last_name=lname,
         )
-        default_group = Group.objects.get(name='USER')
+        default_group = Group.objects.get(name="USER")
         user.groups.add(default_group)
     return user
 
@@ -117,7 +118,7 @@ class LoginWithGoogle(APIView):
                 first_name = id_token.get("given_name", "")
                 last_name = id_token.get("family_name", "")
 
-                user = authenticate_or_create_user(user_email,first_name,last_name)
+                user = authenticate_or_create_user(user_email, first_name, last_name)
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
                 
@@ -133,7 +134,9 @@ class LoginWithGoogle(APIView):
                 })
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminOnlyView(APIView):
@@ -142,20 +145,9 @@ class AdminOnlyView(APIView):
     def get(self, request):
         return Response({"message": "Hello, admin!"})
 
+
 class UserOnlyView(APIView):
     permission_classes = [IsAuthenticated, IsUser]
 
     def get(self, request):
         return Response({"message": "Hello, user!"})
-        
-class CPUViewSet(viewsets.ModelViewSet):
-    queryset = CPU.objects.all()
-    serializer_class = CPUSerializer
-
-class GPUViewSet(viewsets.ModelViewSet):
-    queryset = GPU.objects.all()
-    serializer_class = GPUSerializer
-
-class UsersViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
