@@ -128,7 +128,8 @@ class LoginWithGoogle(APIView):
                     'first_name': first_name, 
                     'last_name': last_name,
                     'is_admin': user.groups.filter(name='ADMIN').exists(),
-                    'estado':user.id_estado_persona.id_estado_persona
+                    'estado':user.id_estado_persona.id_estado_persona,
+                    'id_user':user.id
                 })
             return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
