@@ -1,49 +1,60 @@
 from rest_framework import serializers
-from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, Recurso, User , Solicitud , Archivo
+from .models import (
+    Facultad,
+    Especialidad,
+    EstadoPersona,
+    CPU,
+    GPU,
+    Recurso,
+    User,
+    Solicitud,
+    Archivo,
+    Herramienta,
+    Libreria,
+)
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from datetime import datetime
+
 
 class FacultadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Facultad
         fields = "__all__"
 
+
 class CreateSolicitudSerializer(serializers.ModelSerializer):
     class Meta:
         model = Solicitud
-        fields = ['id_recurso', 'id_user', 'parametros_ejecucion', 'archivos']
+        fields = ["id_recurso", "id_user", "parametros_ejecucion", "archivos"]
 
-    archivos = serializers.ListField(
-        child=serializers.FileField(), write_only=True
-    )
+    archivos = serializers.ListField(child=serializers.FileField(), write_only=True)
 
     def create(self, validated_data):
-        archivos = validated_data.pop('archivos')
-        posicion_cola_obtenida = self.context.get('posicion_cola_obtenida')
+        archivos = validated_data.pop("archivos")
+        posicion_cola_obtenida = self.context.get("posicion_cola_obtenida")
         solicitud = Solicitud.objects.create(
-            id_recurso=validated_data['id_recurso'],
-            id_user=validated_data['id_user'],
-            parametros_ejecucion=validated_data['parametros_ejecucion'],
+            id_recurso=validated_data["id_recurso"],
+            id_user=validated_data["id_user"],
+            parametros_ejecucion=validated_data["parametros_ejecucion"],
             codigo_solicitud="ABD",
             fecha_registro=datetime.now(),
             estado_solicitud="creada",
             posicion_cola=posicion_cola_obtenida,
             fecha_finalizada=datetime(1, 1, 1),
-            fecha_procesamiento=datetime(1, 1, 1)
+            fecha_procesamiento=datetime(1, 1, 1),
         )
         for archivo in archivos:
-            archivo_ruta = f'archivos/{archivo.name}'
-            
-            Archivo.objects.create(
-                ruta=archivo_ruta,
-                id_solicitud=solicitud
-            )
+            archivo_ruta = f"archivos/{archivo.name}"
+
+            Archivo.objects.create(ruta=archivo_ruta, id_solicitud=solicitud)
         return solicitud
+
 
 class SolicitudSerializer(serializers.ModelSerializer):
     class Meta:
         model = Solicitud
         fields = "__all__"
+
 
 class ArchivoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,6 +77,18 @@ class EstadoPersonaSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
+        fields = "__all__"
+
+
+class HerramientaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Herramienta
+        fields = "__all__"
+
+
+class LibreriaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Libreria
         fields = "__all__"
 
 
@@ -136,36 +159,41 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = "__all__"
 
+
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        
+
         # Añadir claim personalizado
-        token['is_admin'] = user.groups.filter(name='ADMIN').exists()
+        token["is_admin"] = user.groups.filter(name="ADMIN").exists()
 
         return token
-    
+
 
 class CPUResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = CPU
-        fields = ['nombre', 'numero_nucleos_cpu', 'frecuencia_cpu']
+        fields = ["nombre", "numero_nucleos_cpu", "frecuencia_cpu"]
+
 
 class GPUResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = GPU
-        fields = ['nombre', 'numero_nucleos_gpu', 'tamano_vram', 'frecuencia_gpu']
+        fields = ["nombre", "numero_nucleos_gpu", "tamano_vram", "frecuencia_gpu"]
+
 
 class UserSSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email']
+        fields = ["email"]
+
 
 class RecursoDetalleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recurso
-        fields = ['id_recurso', 'tamano_ram']
+        fields = ["id_recurso", "tamano_ram"]
+
 
 class SolicitudDetalleSerializer(serializers.ModelSerializer):
     recurso = RecursoDetalleSerializer(read_only=True)
@@ -176,7 +204,16 @@ class SolicitudDetalleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Solicitud
-        fields = ['id_solicitud', 'fecha_registro', 'estado_solicitud', 'nombre', 'numero_nucleos', 'frecuencia', 'tamano_ram','recurso']
+        fields = [
+            "id_solicitud",
+            "fecha_registro",
+            "estado_solicitud",
+            "nombre",
+            "numero_nucleos",
+            "frecuencia",
+            "tamano_ram",
+            "recurso",
+        ]
 
     def get_nombre(self, obj):
         try:
@@ -214,6 +251,7 @@ class SolicitudDetalleSerializer(serializers.ModelSerializer):
         except Recurso.DoesNotExist:
             return None
 
+
 class SolicitudesSerializer(serializers.ModelSerializer):
     recurso = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
@@ -222,16 +260,27 @@ class SolicitudesSerializer(serializers.ModelSerializer):
     detalle = serializers.SerializerMethodField()
     resultados = serializers.SerializerMethodField()
     id = serializers.SerializerMethodField()
+
     class Meta:
         model = Solicitud
         fields = [
-            'id','id_solicitud', 'duracion', 'fecha_registro', 'fecha_procesamiento', 
-            'fecha_finalizada', 'estado_solicitud', 'cancelar', 'detalle', 
-            'resultados', 'recurso', 'email'
+            "id",
+            "id_solicitud",
+            "duracion",
+            "fecha_registro",
+            "fecha_procesamiento",
+            "fecha_finalizada",
+            "estado_solicitud",
+            "cancelar",
+            "detalle",
+            "resultados",
+            "recurso",
+            "email",
         ]
 
     def get_id(self, obj):
         return obj.id_solicitud
+
     def get_cancelar(self, obj):
         return ""
 
@@ -240,7 +289,7 @@ class SolicitudesSerializer(serializers.ModelSerializer):
 
     def get_resultados(self, obj):
         return ""
-    
+
     def get_duracion(self, obj):
         duracion = obj.fecha_finalizada - obj.fecha_procesamiento
         return str(duracion)

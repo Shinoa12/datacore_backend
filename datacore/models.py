@@ -34,12 +34,25 @@ class User(AbstractUser):
         return self.username
 
 
+class Herramienta(models.Model):
+    id_herramienta = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=200)
+
+
+class Libreria(models.Model):
+    id_libreria = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=200)
+    version = models.CharField(max_length=50)
+    herramienta = models.ForeignKey(Herramienta, on_delete=models.CASCADE, null=False)
+
+
 class Recurso(models.Model):
     id_recurso = models.AutoField(primary_key=True)
     solicitudes_encoladas = models.IntegerField()
     tamano_ram = models.IntegerField()
     estado = models.BooleanField()
     ubicacion = models.TextField(blank=True)
+    herramientas = models.ManyToManyField(Herramienta)
 
 
 class CPU(models.Model):
