@@ -145,3 +145,48 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_admin'] = user.groups.filter(name='ADMIN').exists()
 
         return token
+    
+
+class CPUResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CPU
+        fields = ['nombre', 'numero_nucleos_cpu', 'frecuencia_cpu']
+
+class GPUResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GPU
+        fields = ['nombre', 'numero_nucleos_gpu', 'tamano_vram', 'frecuencia_gpu']
+
+class SolicitudesSerializer(serializers.ModelSerializer):
+    recurso_cpu = serializers.SerializerMethodField()
+    recurso_gpu = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Solicitud
+        fields = [
+            'id_solicitud', 'codigo_solicitud', 'fecha_registro', 'estado_solicitud', 
+            'posicion_cola', 'fecha_finalizada', 'parametros_ejecucion', 
+            'fecha_procesamiento', 'id_recurso', 'id_user', 'recurso_cpu', 'recurso_gpu', 'user'
+        ]
+
+    def get_recurso_cpu(self, obj):
+        try:
+            cpu = CPU.objects.get(id_recurso=obj.id_recurso)
+            return CPUResourceSerializer(cpu).data
+        except CPU.DoesNotExist:
+            return None
+
+    def get_recurso_gpu(self, obj):
+        try:
+            gpu = GPU.objects.get(id_recurso=obj.id_recurso)
+            return GPUResourceSerializer(gpu).data
+        except GPU.DoesNotExist:
+            return None
+    
+    def get_user(self, obj):
+        try:
+            user = User.objects.get(id=obj.id_user)
+            return UserSerializer(user).data
+        except User.DoesNotExist:
+            return None

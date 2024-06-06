@@ -9,6 +9,19 @@ especialidades_por_facultad = views.EspecialidadViewSet.as_view(
     {"get": "list_por_facultad"}
 )
 
+getAllSolicitudes = views.SolicitudViewSet.as_view(
+    {"get": "list_por_usuario"}
+)
+
+getSolicitudDetalle = views.SolicitudViewSet.as_view(
+    {"get": "detalle_solicitud"}
+)
+
+getSolicitudResultado = views.ArchivoViewSet.as_view(
+    {"get": "descargar"}
+)
+
+
 router = routers.DefaultRouter()
 
 router.register(r"facultades", views.FacultadViewSet, "facultades")
@@ -19,9 +32,12 @@ router.register(r"gpus", views.GPUViewSet, "gpus")
 router.register(r"users", views.UsersViewSet, "users")
 router.register(r"solicitudes", views.SolicitudViewSet, "solicitudes")
 router.register(r"hostorial", views.HistorialViewSet, "hostorial")
+router.register(r"archivos", views.ArchivoViewSet, "archivos")
+
 
 
 urlpatterns = [
+
     path("api/v1/", include(router.urls)),
     path("docs/", include_docs_urls(title="DataCore API")),
     path(
@@ -33,6 +49,11 @@ urlpatterns = [
     path('api/v1/login-with-google/', LoginWithGoogle.as_view(), name = 'login-with-google'),
 
     # Hitstorial
-
-    # Solicitudes
+    #path('api/v1/getAllHistorial/', views.list_historial, name = 'getAllHistorial'),
+        # Solicitudes
+        path('api/v1/getAllSolicitudes/<int:id_user>/', getAllSolicitudes , name = 'getAllSolicitudes'),
+        path('api/v1/getSolicitudDetalle/<int:id_solicitud>/', getSolicitudDetalle, name = 'getSolicitudDetalle'),
+        
+        path('api/v1/getSolicitudResultado/<int:id_solicitud>/', getSolicitudResultado, name = 'getSolicitudResultado'),
+        path('api/v1/deleteSolicitud/<int:id_solicitud>/', views.deleteSolicitud, name = 'deleteSolicitud'),
 ]
