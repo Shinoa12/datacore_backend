@@ -157,36 +157,107 @@ class GPUResourceSerializer(serializers.ModelSerializer):
         model = GPU
         fields = ['nombre', 'numero_nucleos_gpu', 'tamano_vram', 'frecuencia_gpu']
 
+class UserSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email']
+
+class RecursoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recurso
+        fields = ['id_recurso', 'tamano_ram']
+
+class SolicitudDetalleSerializer(serializers.ModelSerializer):
+    recurso = RecursoSerializer(read_only=True)
+    nombre = serializers.SerializerMethodField()
+    numero_nucleos = serializers.SerializerMethodField()
+    frecuencia = serializers.SerializerMethodField()
+    tamano_ram = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Solicitud
+        fields = ['id_solicitud', 'fecha_registro', 'estado_solicitud', 'nombre', 'numero_nucleos', 'frecuencia', 'tamano_ram','recurso']
+
+    def get_nombre(self, obj):
+        try:
+            cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
+            if cpu:
+                return CPU.objects.get(id_recurso=obj.id_recurso).nombre
+            else:
+                return GPU.objects.get(id_recurso=obj.id_recurso).nombre
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
+            return None
+
+    def get_numero_nucleos(self, obj):
+        try:
+            cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
+            if cpu:
+                return CPU.objects.get(id_recurso=obj.id_recurso).numero_nucleos_cpu
+            else:
+                return GPU.objects.get(id_recurso=obj.id_recurso).numero_nucleos_gpu
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
+            return None
+
+    def get_frecuencia(self, obj):
+        try:
+            cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
+            if cpu:
+                return CPU.objects.get(id_recurso=obj.id_recurso).frecuencia_cpu
+            else:
+                return GPU.objects.get(id_recurso=obj.id_recurso).frecuencia_gpu
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
+            return None
+
+    def get_tamano_ram(self, obj):
+        try:
+            return Recurso.objects.get(id_recurso=obj.id_recurso.id_recurso).tamano_ram
+        except Recurso.DoesNotExist:
+            return None
+
 class SolicitudesSerializer(serializers.ModelSerializer):
-    recurso_cpu = serializers.SerializerMethodField()
-    recurso_gpu = serializers.SerializerMethodField()
-    user = serializers.SerializerMethodField()
-    
+    recurso = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    duracion = serializers.SerializerMethodField()
+    cancelar = serializers.SerializerMethodField()
+    detalle = serializers.SerializerMethodField()
+    resultados = serializers.SerializerMethodField()
+    id = serializers.SerializerMethodField()
     class Meta:
         model = Solicitud
         fields = [
-            'id_solicitud', 'codigo_solicitud', 'fecha_registro', 'estado_solicitud', 
-            'posicion_cola', 'fecha_finalizada', 'parametros_ejecucion', 
-            'fecha_procesamiento', 'id_recurso', 'id_user', 'recurso_cpu', 'recurso_gpu', 'user'
+            'id','id_solicitud', 'duracion', 'fecha_registro', 'fecha_procesamiento', 
+            'fecha_finalizada', 'estado_solicitud', 'cancelar', 'detalle', 
+            'resultados', 'recurso', 'email'
         ]
 
-    def get_recurso_cpu(self, obj):
+    def get_id(self, obj):
+        return obj.id_solicitud
+    def get_cancelar(self, obj):
+        return ""
+
+    def get_detalle(self, obj):
+        return ""
+
+    def get_resultados(self, obj):
+        return ""
+    
+    def get_duracion(self, obj):
+        duracion = obj.fecha_finalizada - obj.fecha_procesamiento
+        return str(duracion)
+
+    def get_recurso(self, obj):
         try:
-            cpu = CPU.objects.get(id_recurso=obj.id_recurso)
-            return CPUResourceSerializer(cpu).data
+            cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
+            if cpu:
+                return "CPU"
+            else:
+                return "GPU"
         except CPU.DoesNotExist:
             return None
 
-    def get_recurso_gpu(self, obj):
+    def get_email(self, obj):
         try:
-            gpu = GPU.objects.get(id_recurso=obj.id_recurso)
-            return GPUResourceSerializer(gpu).data
-        except GPU.DoesNotExist:
-            return None
-    
-    def get_user(self, obj):
-        try:
-            user = User.objects.get(id=obj.id_user)
-            return UserSerializer(user).data
+            user = User.objects.get(id=obj.id_user.id)
+            return user.email
         except User.DoesNotExist:
             return None

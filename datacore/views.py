@@ -31,7 +31,8 @@ from .serializer import (
     SolicitudSerializer,
     ArchivoSerializer,
     CreateSolicitudSerializer,
-    SolicitudesSerializer
+    SolicitudesSerializer,
+    SolicitudDetalleSerializer,
 )
 
 
@@ -93,13 +94,13 @@ class SolicitudViewSet(viewsets.ModelViewSet) :
 
     def list_por_usuario(self, request, id_user):
         solicitudes = self.queryset.filter(id_user_id=id_user)
-        serializer = self.get_serializer(solicitudes, many=True)
+        serializer = SolicitudesSerializer(solicitudes, many=True)
         return Response(serializer.data)
 
     
     def detalle_solicitud(self, request, id_solicitud):
         solicitud = self.queryset.get(id_solicitud=id_solicitud)
-        return Response(SolicitudSerializer(solicitud).data)
+        return Response(SolicitudDetalleSerializer(solicitud).data)
 
     def create(self, request):
         data = request.data

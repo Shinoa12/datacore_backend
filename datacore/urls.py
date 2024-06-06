@@ -31,7 +31,7 @@ router.register(r"cpus", views.CPUViewSet, "cpus")
 router.register(r"gpus", views.GPUViewSet, "gpus")
 router.register(r"users", views.UsersViewSet, "users")
 router.register(r"solicitudes", views.SolicitudViewSet, "solicitudes")
-router.register(r"hostorial", views.HistorialViewSet, "hostorial")
+router.register(r"historial", views.HistorialViewSet, "historial")
 router.register(r"archivos", views.ArchivoViewSet, "archivos")
 
 
