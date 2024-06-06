@@ -9,17 +9,11 @@ especialidades_por_facultad = views.EspecialidadViewSet.as_view(
     {"get": "list_por_facultad"}
 )
 
-getAllSolicitudes = views.SolicitudViewSet.as_view(
-    {"get": "list_por_usuario"}
-)
+getAllSolicitudes = views.SolicitudViewSet.as_view({"get": "list_por_usuario"})
 
-getSolicitudDetalle = views.SolicitudViewSet.as_view(
-    {"get": "detalle_solicitud"}
-)
+getSolicitudDetalle = views.SolicitudViewSet.as_view({"get": "detalle_solicitud"})
 
-getSolicitudResultado = views.ArchivoViewSet.as_view(
-    {"get": "descargar"}
-)
+getSolicitudResultado = views.ArchivoViewSet.as_view({"get": "descargar"})
 
 
 router = routers.DefaultRouter()
@@ -33,11 +27,10 @@ router.register(r"users", views.UsersViewSet, "users")
 router.register(r"solicitudes", views.SolicitudViewSet, "solicitudes")
 router.register(r"historial", views.HistorialViewSet, "historial")
 router.register(r"archivos", views.ArchivoViewSet, "archivos")
-
-
+router.register(r"herramientas", views.HerramientaViewSet, "herramientas")
+router.register(r"librerias", views.LibreriaViewSet, "librerias")
 
 urlpatterns = [
-
     path("api/v1/", include(router.urls)),
     path("docs/", include_docs_urls(title="DataCore API")),
     path(
@@ -45,15 +38,31 @@ urlpatterns = [
         especialidades_por_facultad,
         name="especialidadesPorFacultad",
     ),
-    path('api/v1/crear-solicitud/', views.crear_solicitud, name='crear_solicitud'),
-    path('api/v1/login-with-google/', LoginWithGoogle.as_view(), name = 'login-with-google'),
-
-    # Hitstorial
-    #path('api/v1/getAllHistorial/', views.list_historial, name = 'getAllHistorial'),
-        # Solicitudes
-        path('api/v1/getAllSolicitudes/<int:id_user>/', getAllSolicitudes , name = 'getAllSolicitudes'),
-        path('api/v1/getSolicitudDetalle/<int:id_solicitud>/', getSolicitudDetalle, name = 'getSolicitudDetalle'),
-        
-        path('api/v1/getSolicitudResultado/<int:id_solicitud>/', getSolicitudResultado, name = 'getSolicitudResultado'),
-        path('api/v1/deleteSolicitud/<int:id_solicitud>/', views.deleteSolicitud, name = 'deleteSolicitud'),
+    path("api/v1/crear-solicitud/", views.crear_solicitud, name="crear_solicitud"),
+    path(
+        "api/v1/login-with-google/", LoginWithGoogle.as_view(), name="login-with-google"
+    ),
+    # Historial
+    # path('api/v1/getAllHistorial/', views.list_historial, name = 'getAllHistorial'),
+    # Solicitudes
+    path(
+        "api/v1/getAllSolicitudes/<int:id_user>/",
+        getAllSolicitudes,
+        name="getAllSolicitudes",
+    ),
+    path(
+        "api/v1/getSolicitudDetalle/<int:id_solicitud>/",
+        getSolicitudDetalle,
+        name="getSolicitudDetalle",
+    ),
+    path(
+        "api/v1/getSolicitudResultado/<int:id_solicitud>/",
+        getSolicitudResultado,
+        name="getSolicitudResultado",
+    ),
+    path(
+        "api/v1/deleteSolicitud/<int:id_solicitud>/",
+        views.deleteSolicitud,
+        name="deleteSolicitud",
+    ),
 ]

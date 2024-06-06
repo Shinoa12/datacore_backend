@@ -20,7 +20,19 @@ from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 import logging
 from datetime import datetime
-from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User , Solicitud , Archivo , Recurso
+from .models import (
+    Facultad,
+    Especialidad,
+    EstadoPersona,
+    CPU,
+    GPU,
+    User,
+    Solicitud,
+    Archivo,
+    Recurso,
+    Herramienta,
+    Libreria,
+)
 from .serializer import (
     FacultadSerializer,
     EspecialidadSerializer,
@@ -33,6 +45,8 @@ from .serializer import (
     CreateSolicitudSerializer,
     SolicitudesSerializer,
     SolicitudDetalleSerializer,
+    HerramientaSerializer,
+    LibreriaSerializer,
 )
 
 
@@ -56,6 +70,17 @@ class EspecialidadViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(especialidades, many=True)
         return Response(serializer.data)
 
+
+class HerramientaViewSet(viewsets.ModelViewSet):
+    queryset = Herramienta.objects.all()
+    serializer_class = HerramientaSerializer
+
+
+class LibreriaViewSet(viewsets.ModelViewSet):
+    queryset = Libreria.objects.all()
+    serializer_class = LibreriaSerializer
+
+
 class CPUViewSet(viewsets.ModelViewSet):
     queryset = CPU.objects.all()
     serializer_class = CPUSerializer
@@ -78,6 +103,7 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+
 class ArchivoViewSet(viewsets.ModelViewSet):
     queryset = Archivo.objects.all()
     serializer_class = ArchivoSerializer
@@ -88,7 +114,7 @@ class ArchivoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class SolicitudViewSet(viewsets.ModelViewSet) : 
+class SolicitudViewSet(viewsets.ModelViewSet):
     queryset = Solicitud.objects.all()
     serializer_class = SolicitudSerializer
 
@@ -97,21 +123,18 @@ class SolicitudViewSet(viewsets.ModelViewSet) :
         serializer = SolicitudesSerializer(solicitudes, many=True)
         return Response(serializer.data)
 
-    
     def detalle_solicitud(self, request, id_solicitud):
         solicitud = self.queryset.get(id_solicitud=id_solicitud)
         return Response(SolicitudDetalleSerializer(solicitud).data)
 
     def create(self, request):
         data = request.data
-        
-        # Extraer los parámetros
-        id_user = data.get('id_user')
-        id_recurso = data.get('id_recurso')
-        parametros_ejecucion = data.get('parametros_ejecucion')
-        
 
-        
+        # Extraer los parámetros
+        id_user = data.get("id_user")
+        id_recurso = data.get("id_recurso")
+        parametros_ejecucion = data.get("parametros_ejecucion")
+
         # Crear la instancia de Solicitud
         solicitud = Solicitud.objects.create(
             id_recurso_id=id_recurso,
@@ -124,68 +147,81 @@ class SolicitudViewSet(viewsets.ModelViewSet) :
             fecha_finalizada=datetime(1, 1, 1),
             fecha_procesamiento=datetime(1, 1, 1),
         )
-        
+
         # Serializa y devuelve la respuesta
         response_serializer = SolicitudSerializer(solicitud)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-    
+
+
 class HistorialViewSet(viewsets.ModelViewSet):
     queryset = Solicitud.objects.all()
     serializer_class = SolicitudesSerializer
 
 
-    
-@api_view(['DELETE'])
+@api_view(["DELETE"])
 @transaction.atomic
 def deleteSolicitud(request, id_solicitud):
-    if request.method == 'DELETE':
+    if request.method == "DELETE":
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "cancelada"
             solicitud.save()
             return Response(SolicitudSerializer(solicitud).data)
         except Solicitud.DoesNotExist:
-            return Response({'error': 'Solicitud not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Solicitud not found"}, status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @transaction.atomic
 def crear_solicitud(request):
-    if request.method == 'POST':
-        id_recurso = request.data.get('id_recurso')
+    if request.method == "POST":
+        id_recurso = request.data.get("id_recurso")
 
         # Ensure 'id_recurso' is provided
         if not id_recurso:
-            return Response({'error': 'id_recurso is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "id_recurso is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             posicionColaObtenida = encolar_solicitud(id_recurso)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        solicitud_serializer = CreateSolicitudSerializer(data=request.data, context={'posicion_cola_obtenida': posicionColaObtenida})
+        solicitud_serializer = CreateSolicitudSerializer(
+            data=request.data, context={"posicion_cola_obtenida": posicionColaObtenida}
+        )
 
         if solicitud_serializer.is_valid():
-            solicitud = solicitud_serializer.save()                
-            return Response(CreateSolicitudSerializer(solicitud).data, status=status.HTTP_201_CREATED)
-        
+            solicitud = solicitud_serializer.save()
+            return Response(
+                CreateSolicitudSerializer(solicitud).data,
+                status=status.HTTP_201_CREATED,
+            )
+
         return Response(solicitud_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 @transaction.atomic
 def encolar_solicitud(id_recurso):
     # Obtener el recurso por su ID
     recurso = get_object_or_404(Recurso, pk=id_recurso)
-    
+
     # Incrementar el contador de solicitudes encoladas de manera atómica
-    recurso.solicitudes_encoladas = F('solicitudes_encoladas') + 1
-    recurso.save(update_fields=['solicitudes_encoladas'])
-    
+    recurso.solicitudes_encoladas = F("solicitudes_encoladas") + 1
+    recurso.save(update_fields=["solicitudes_encoladas"])
+
     # Refrescar el objeto recurso para obtener el valor actualizado del campo
     recurso.refresh_from_db()
-    
+
     return recurso.solicitudes_encoladas
 
 
@@ -240,18 +276,22 @@ class LoginWithGoogle(APIView):
                 user = authenticate_or_create_user(user_email, first_name, last_name)
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
-                
-                return Response({
-                    'access_token': str(token), 
-                    'username': user_email, 
-                    'refresh_token': str(refresh), 
-                    'first_name': first_name, 
-                    'last_name': last_name,
-                    'is_admin': user.groups.filter(name='ADMIN').exists(),
-                    'estado':user.id_estado_persona.id_estado_persona,
-                    'id_user':user.id
-                })
-            return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+                return Response(
+                    {
+                        "access_token": str(token),
+                        "username": user_email,
+                        "refresh_token": str(refresh),
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "is_admin": user.groups.filter(name="ADMIN").exists(),
+                        "estado": user.id_estado_persona.id_estado_persona,
+                        "id_user": user.id,
+                    }
+                )
+            return Response(
+                {"error": "No code provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
