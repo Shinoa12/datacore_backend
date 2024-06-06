@@ -30,7 +30,9 @@ from .serializer import (
     UserSerializer,
     SolicitudSerializer,
     ArchivoSerializer,
-    CreateSolicitudSerializer
+    CreateSolicitudSerializer,
+    SolicitudesSerializer,
+    SolicitudDetalleSerializer,
 )
 
 
@@ -54,7 +56,6 @@ class EspecialidadViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(especialidades, many=True)
         return Response(serializer.data)
 
-
 class CPUViewSet(viewsets.ModelViewSet):
     queryset = CPU.objects.all()
     serializer_class = CPUSerializer
@@ -77,10 +78,29 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+class ArchivoViewSet(viewsets.ModelViewSet):
+    queryset = Archivo.objects.all()
+    serializer_class = ArchivoSerializer
+
+    def descargar(self, request, id_solicitud):
+        archivos = self.queryset.filter(id_solicitud_id=id_solicitud)
+        serializer = self.get_serializer(archivos, many=True)
+        return Response(serializer.data)
+
 
 class SolicitudViewSet(viewsets.ModelViewSet) : 
     queryset = Solicitud.objects.all()
     serializer_class = SolicitudSerializer
+
+    def list_por_usuario(self, request, id_user):
+        solicitudes = self.queryset.filter(id_user_id=id_user)
+        serializer = SolicitudesSerializer(solicitudes, many=True)
+        return Response(serializer.data)
+
+    
+    def detalle_solicitud(self, request, id_solicitud):
+        solicitud = self.queryset.get(id_solicitud=id_solicitud)
+        return Response(SolicitudDetalleSerializer(solicitud).data)
 
     def create(self, request):
         data = request.data
@@ -109,6 +129,27 @@ class SolicitudViewSet(viewsets.ModelViewSet) :
         response_serializer = SolicitudSerializer(solicitud)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
+class HistorialViewSet(viewsets.ModelViewSet):
+    queryset = Solicitud.objects.all()
+    serializer_class = SolicitudesSerializer
+
+
+    
+@api_view(['DELETE'])
+@transaction.atomic
+def deleteSolicitud(request, id_solicitud):
+    if request.method == 'DELETE':
+        try:
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "cancelada"
+            solicitud.save()
+            return Response(SolicitudSerializer(solicitud).data)
+        except Solicitud.DoesNotExist:
+            return Response({'error': 'Solicitud not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
 @api_view(['POST'])
 @transaction.atomic
 def crear_solicitud(request):
