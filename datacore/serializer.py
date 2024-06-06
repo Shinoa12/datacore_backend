@@ -162,13 +162,13 @@ class UserSSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email']
 
-class RecursoSerializer(serializers.ModelSerializer):
+class RecursoDetalleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recurso
         fields = ['id_recurso', 'tamano_ram']
 
 class SolicitudDetalleSerializer(serializers.ModelSerializer):
-    recurso = RecursoSerializer(read_only=True)
+    recurso = RecursoDetalleSerializer(read_only=True)
     nombre = serializers.SerializerMethodField()
     numero_nucleos = serializers.SerializerMethodField()
     frecuencia = serializers.SerializerMethodField()
