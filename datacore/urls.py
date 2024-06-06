@@ -17,6 +17,7 @@ router.register(r"estadosPersonas", views.EstadoPersonaViewSet, "estadosPersonas
 router.register(r"cpus", views.CPUViewSet, "cpus")
 router.register(r"gpus", views.GPUViewSet, "gpus")
 router.register(r"users", views.UsersViewSet, "users")
+router.register(r"solicitudes", views.SolicitudViewSet, "solicitudes")
 
 urlpatterns = [
     path("api/v1/", include(router.urls)),
@@ -26,6 +27,7 @@ urlpatterns = [
         especialidades_por_facultad,
         name="especialidadesPorFacultad",
     ),
+    path('api/v1/crear-solicitud/', views.crear_solicitud, name='crear_solicitud'),
     path('api/v1/login-with-google/', LoginWithGoogle.as_view(), name = 'login-with-google'),
     
 ]
