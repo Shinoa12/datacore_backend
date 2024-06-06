@@ -109,6 +109,12 @@ class SolicitudViewSet(viewsets.ModelViewSet) :
         response_serializer = SolicitudSerializer(solicitud)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
+class HistorialViewSet(viewsets.ModelViewSet):
+    queryset = Solicitud.objects.all()
+    serializer_class = SolicitudSerializer
+
+    
+
 @api_view(['POST'])
 @transaction.atomic
 def crear_solicitud(request):
