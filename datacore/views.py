@@ -75,6 +75,12 @@ class HerramientaViewSet(viewsets.ModelViewSet):
     queryset = Herramienta.objects.all()
     serializer_class = HerramientaSerializer
 
+    @action(detail=True, methods=["get"])
+    def librerias(self, request, pk=None):
+        libs = Libreria.objects.filter(herramienta=pk)
+        serializer = LibreriaSerializer(libs, many=True)
+        return Response(serializer.data)
+
 
 class LibreriaViewSet(viewsets.ModelViewSet):
     queryset = Libreria.objects.all()
@@ -89,6 +95,13 @@ class CPUViewSet(viewsets.ModelViewSet):
         kwargs["partial"] = True
         return self.update(request, *args, **kwargs)
 
+    @action(detail=True, methods=["get"])
+    def herramientas(self, request, pk=None):
+        cpu = self.get_object()
+        herramientas = cpu.id_recurso.herramientas.all()
+        serializer = HerramientaSerializer(herramientas, many=True)
+        return Response(serializer.data)
+
 
 class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
@@ -97,6 +110,13 @@ class GPUViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         kwargs["partial"] = True
         return self.update(request, *args, **kwargs)
+
+    @action(detail=True, methods=["get"])
+    def herramientas(self, request, pk=None):
+        gpu = self.get_object()
+        herramientas = gpu.id_recurso.herramientas.all()
+        serializer = HerramientaSerializer(herramientas, many=True)
+        return Response(serializer.data)
 
 
 class UsersViewSet(viewsets.ModelViewSet):
