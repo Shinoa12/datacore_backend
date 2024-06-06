@@ -1,4 +1,8 @@
 from rest_framework import viewsets
+from django.db import transaction
+from django.db.models import F
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .utils import get_id_token_with_code_method_1, get_id_token_with_code_method_2
@@ -15,7 +19,8 @@ from rest_framework.permissions import IsAuthenticated
 from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 import logging
-from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User , Solicitud
+from datetime import datetime
+from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, User , Solicitud , Archivo , Recurso
 from .serializer import (
     FacultadSerializer,
     EspecialidadSerializer,
@@ -23,7 +28,9 @@ from .serializer import (
     CPUSerializer,
     GPUSerializer,
     UserSerializer,
-    SolicitudSerializer
+    SolicitudSerializer,
+    ArchivoSerializer,
+    CreateSolicitudSerializer
 )
 
 
@@ -75,20 +82,70 @@ class SolicitudViewSet(viewsets.ModelViewSet) :
     queryset = Solicitud.objects.all()
     serializer_class = SolicitudSerializer
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request):
         data = request.data
-        id_recurso = data.get('id_recurso')
+        
+        # Extraer los parámetros
         id_user = data.get('id_user')
-        execution_parameters = data.get('execution_parameters')
-         # Crea la instancia de Solicitud
+        id_recurso = data.get('id_recurso')
+        parametros_ejecucion = data.get('parametros_ejecucion')
+        
+
+        
+        # Crear la instancia de Solicitud
         solicitud = Solicitud.objects.create(
-            recurso=id_recurso,
-            user=id_user,
-            execution_parameters=execution_parameters
+            id_recurso_id=id_recurso,
+            id_user_id=id_user,
+            parametros_ejecucion=parametros_ejecucion,
+            codigo_solicitud="ABD",
+            fecha_registro=datetime.now(),
+            estado_solicitud="creada",
+            posicion_cola=1,
+            fecha_finalizada=datetime(1, 1, 1),
+            fecha_procesamiento=datetime(1, 1, 1),
         )
+        
         # Serializa y devuelve la respuesta
-        serializer = self.get_serializer(data)
-        return Response(serializer.data)
+        response_serializer = SolicitudSerializer(solicitud)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+    
+@api_view(['POST'])
+@transaction.atomic
+def crear_solicitud(request):
+    if request.method == 'POST':
+        id_recurso = request.data.get('id_recurso')
+
+        # Ensure 'id_recurso' is provided
+        if not id_recurso:
+            return Response({'error': 'id_recurso is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            posicionColaObtenida = encolar_solicitud(id_recurso)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        solicitud_serializer = CreateSolicitudSerializer(data=request.data, context={'posicion_cola_obtenida': posicionColaObtenida})
+
+        if solicitud_serializer.is_valid():
+            solicitud = solicitud_serializer.save()                
+            return Response(CreateSolicitudSerializer(solicitud).data, status=status.HTTP_201_CREATED)
+        
+        return Response(solicitud_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@transaction.atomic
+def encolar_solicitud(id_recurso):
+    # Obtener el recurso por su ID
+    recurso = get_object_or_404(Recurso, pk=id_recurso)
+    
+    # Incrementar el contador de solicitudes encoladas de manera atómica
+    recurso.solicitudes_encoladas = F('solicitudes_encoladas') + 1
+    recurso.save(update_fields=['solicitudes_encoladas'])
+    
+    # Refrescar el objeto recurso para obtener el valor actualizado del campo
+    recurso.refresh_from_db()
+    
+    return recurso.solicitudes_encoladas
 
 
 def generate_tokens_for_user(user):

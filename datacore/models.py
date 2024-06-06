@@ -72,3 +72,9 @@ class Solicitud(models.Model):
     fecha_procesamiento = models.DateTimeField()
     id_recurso = models.ForeignKey(Recurso, on_delete=models.CASCADE, null=False)
     id_user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
+
+
+class Archivo(models.Model):
+    id_solicitud = models.AutoField(primary_key=True)
+    ruta = models.CharField(max_length=200)
+    id_solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=False)

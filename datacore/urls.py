@@ -27,6 +27,7 @@ urlpatterns = [
         especialidades_por_facultad,
         name="especialidadesPorFacultad",
     ),
+    path('api/v1/crear-solicitud/', views.crear_solicitud, name='crear_solicitud'),
     path('api/v1/login-with-google/', LoginWithGoogle.as_view(), name = 'login-with-google'),
     
 ]

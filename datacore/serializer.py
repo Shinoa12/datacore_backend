@@ -1,17 +1,54 @@
 from rest_framework import serializers
-from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, Recurso, User , Solicitud
+from .models import Facultad, Especialidad, EstadoPersona, CPU, GPU, Recurso, User , Solicitud , Archivo
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from datetime import datetime
 
 class FacultadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Facultad
         fields = "__all__"
 
+class CreateSolicitudSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Solicitud
+        fields = ['id_recurso', 'id_user', 'parametros_ejecucion', 'archivos']
+
+    archivos = serializers.ListField(
+        child=serializers.FileField(), write_only=True
+    )
+
+    def create(self, validated_data):
+        archivos = validated_data.pop('archivos')
+        posicion_cola_obtenida = self.context.get('posicion_cola_obtenida')
+        solicitud = Solicitud.objects.create(
+            id_recurso=validated_data['id_recurso'],
+            id_user=validated_data['id_user'],
+            parametros_ejecucion=validated_data['parametros_ejecucion'],
+            codigo_solicitud="ABD",
+            fecha_registro=datetime.now(),
+            estado_solicitud="creada",
+            posicion_cola=posicion_cola_obtenida,
+            fecha_finalizada=datetime(1, 1, 1),
+            fecha_procesamiento=datetime(1, 1, 1)
+        )
+        for archivo in archivos:
+            archivo_ruta = f'archivos/{archivo.name}'
+            
+            Archivo.objects.create(
+                ruta=archivo_ruta,
+                id_solicitud=solicitud
+            )
+        return solicitud
 
 class SolicitudSerializer(serializers.ModelSerializer):
     class Meta:
         model = Solicitud
-        fields = ['id_recurso', 'id_user', 'parametros_ejecucion']
+        fields = "__all__"
+
+class ArchivoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Archivo
+        fields = "__all__"
 
 
 class EspecialidadSerializer(serializers.ModelSerializer):
