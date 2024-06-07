@@ -107,17 +107,28 @@ class CPUSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         recurso_data = validated_data.pop("id_recurso")
+        herramientas_data = recurso_data.pop("herramientas", [])
         recurso_instance = Recurso.objects.create(**recurso_data)
+
+        if herramientas_data:
+            recurso_instance.herramientas.set(herramientas_data)
+
         cpu_instance = CPU.objects.create(id_recurso=recurso_instance, **validated_data)
+
         return cpu_instance
 
     def update(self, instance, validated_data):
         recurso_data = validated_data.pop("id_recurso", None)
 
         if recurso_data:
+            herramientas_data = recurso_data.pop("herramientas", None)
+
             for attr, value in recurso_data.items():
                 setattr(instance.id_recurso, attr, value)
             instance.id_recurso.save()
+
+            if herramientas_data is not None:
+                instance.id_recurso.herramientas.set(herramientas_data)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -135,17 +146,28 @@ class GPUSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         recurso_data = validated_data.pop("id_recurso")
+        herramientas_data = recurso_data.pop("herramientas", [])
         recurso_instance = Recurso.objects.create(**recurso_data)
+
+        if herramientas_data:
+            recurso_instance.herramientas.set(herramientas_data)
+
         gpu_instance = GPU.objects.create(id_recurso=recurso_instance, **validated_data)
+
         return gpu_instance
 
     def update(self, instance, validated_data):
         recurso_data = validated_data.pop("id_recurso", None)
 
         if recurso_data:
+            herramientas_data = recurso_data.pop("herramientas", None)
+
             for attr, value in recurso_data.items():
                 setattr(instance.id_recurso, attr, value)
             instance.id_recurso.save()
+
+            if herramientas_data is not None:
+                instance.id_recurso.herramientas.set(herramientas_data)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
