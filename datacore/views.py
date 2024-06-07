@@ -147,31 +147,6 @@ class SolicitudViewSet(viewsets.ModelViewSet):
         solicitud = self.queryset.get(id_solicitud=id_solicitud)
         return Response(SolicitudDetalleSerializer(solicitud).data)
 
-    def create(self, request):
-        data = request.data
-
-        # Extraer los parámetros
-        id_user = data.get("id_user")
-        id_recurso = data.get("id_recurso")
-        parametros_ejecucion = data.get("parametros_ejecucion")
-
-        # Crear la instancia de Solicitud
-        solicitud = Solicitud.objects.create(
-            id_recurso_id=id_recurso,
-            id_user_id=id_user,
-            parametros_ejecucion=parametros_ejecucion,
-            codigo_solicitud="ABD",
-            fecha_registro=datetime.now(),
-            estado_solicitud="creada",
-            posicion_cola=1,
-            fecha_finalizada=datetime(1, 1, 1),
-            fecha_procesamiento=datetime(1, 1, 1),
-        )
-
-        # Serializa y devuelve la respuesta
-        response_serializer = SolicitudSerializer(solicitud)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
 
 class HistorialViewSet(viewsets.ModelViewSet):
     queryset = Solicitud.objects.all()
