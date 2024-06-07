@@ -52,7 +52,7 @@ class Recurso(models.Model):
     tamano_ram = models.IntegerField()
     estado = models.BooleanField()
     ubicacion = models.TextField(blank=True)
-    herramientas = models.ManyToManyField(Herramienta)
+    herramientas = models.ManyToManyField(Herramienta, blank=True)
 
 
 class CPU(models.Model):
