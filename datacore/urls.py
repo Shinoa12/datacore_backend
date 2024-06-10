@@ -61,8 +61,8 @@ urlpatterns = [
         name="getSolicitudResultado",
     ),
     path(
-        "api/v1/deleteSolicitud/<int:id_solicitud>/",
-        views.deleteSolicitud,
-        name="deleteSolicitud",
+        "api/v1/cancelarSolicitud/<int:id_solicitud>/",
+        views.cancelarSolicitud,
+        name="cancelarSolicitud",
     ),
 ]

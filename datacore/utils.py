@@ -3,6 +3,30 @@ import urllib
 import requests
 import jwt
 import os
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import User
+
+
+
+def enviar_email(asunto,id_user, mensaje):
+    try:
+        usuario = User.objects.get(id=id_user)
+        destinatario = usuario.email
+    except User.DoesNotExist:
+        raise ValueError("Usuario no encontrado.")
+
+    asunto = asunto
+    destinatarios = [destinatario]
+
+    send_mail(
+        asunto,
+        mensaje,
+        None,
+        destinatarios
+    )
+
+
 
 
 def get_id_token_with_code_method_1(code):

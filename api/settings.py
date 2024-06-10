@@ -220,3 +220,12 @@ SIMPLE_JWT = {
 REST_FRAMEWORK.update(
     {"DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema"}
 )
+
+# SMTP SERVICE
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'jccaceresh.98@gmail.com'
+EMAIL_HOST_PASSWORD = 'hxyi lcyi cmei kllm'
+DEFAULT_FROM_EMAIL = 'jccaceresh.98@gmail.com'
