@@ -154,11 +154,10 @@ class HistorialViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitudesSerializer
 
 
-@api_view(["POST"])
+@api_view(["DELETE"])
 @transaction.atomic
-def cancelarSolicitud(request):
-    if request.method == "POST":
-        id_solicitud = request.data.get("id_solicitud")
+def cancelarSolicitud(request , id_solicitud):
+    if request.method == "DELETE":
 
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
