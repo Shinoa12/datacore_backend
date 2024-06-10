@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from django.db import transaction
+from django.db import transaction , models
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
@@ -18,6 +18,7 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
+from .utils import enviar_email
 import logging
 from datetime import datetime
 from .models import (
@@ -153,18 +154,29 @@ class HistorialViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitudesSerializer
 
 
-@api_view(["DELETE"])
+@api_view(["POST"])
 @transaction.atomic
-def deleteSolicitud(request, id_solicitud):
-    if request.method == "DELETE":
+def cancelarSolicitud(request):
+    if request.method == "POST":
+        id_solicitud = request.data.get("id_solicitud")
+
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
-            solicitud.estado_solicitud = "cancelada"
-            solicitud.save()
+            # Descolar del recurso
+            desencolar_solicitud(solicitud)
+
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email("DATACORE-SOLICITUD CANCELADA", solicitud.id_user_id , "Su solicitud ha sido cancelada.")
+
             return Response(SolicitudSerializer(solicitud).data)
+
         except Solicitud.DoesNotExist:
             return Response(
-                {"error": "Solicitud not found"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             return Response(
@@ -212,6 +224,31 @@ def encolar_solicitud(id_recurso):
 
     # Incrementar el contador de solicitudes encoladas de manera atómica
     recurso.solicitudes_encoladas = F("solicitudes_encoladas") + 1
+    recurso.save(update_fields=["solicitudes_encoladas"])
+
+    # Refrescar el objeto recurso para obtener el valor actualizado del campo
+    recurso.refresh_from_db()
+
+    return recurso.solicitudes_encoladas
+
+@transaction.atomic
+def desencolar_solicitud(solicitud):
+    # Obtener el recurso por su ID
+    recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
+
+    posicion_original = solicitud.posicion_cola
+    solicitud.estado_solicitud = "cancelada"
+    solicitud.posicion_cola = 0
+    solicitud.save()
+
+    # Actualizar posiciones de otras solicitudes
+    Solicitud.objects.filter(
+        id_recurso=solicitud.id_recurso_id,
+        posicion_cola__gt=posicion_original
+    ).update(posicion_cola=models.F('posicion_cola') - 1)
+
+    # Incrementar el contador de solicitudes encoladas de manera atómica
+    recurso.solicitudes_encoladas = F("solicitudes_encoladas") - 1
     recurso.save(update_fields=["solicitudes_encoladas"])
 
     # Refrescar el objeto recurso para obtener el valor actualizado del campo
