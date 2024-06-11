@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
 from rest_framework import routers
 from datacore import views
-from .views import LoginWithGoogle
+from .views import LoginWithGoogle, run_script
 from rest_framework_simplejwt.views import TokenVerifyView
 
 especialidades_por_facultad = views.EspecialidadViewSet.as_view(
@@ -65,4 +65,5 @@ urlpatterns = [
         views.cancelarSolicitud,
         name="cancelarSolicitud",
     ),
+    path("api/v1/run-script/", run_script, name="run_script"),
 ]

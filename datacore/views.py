@@ -1,7 +1,11 @@
 from rest_framework import viewsets
-from django.db import transaction , models
+from django.db import transaction, models
 from django.db.models import F
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.conf import settings
+from django.views.decorators.csrf import get_token
+from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -20,6 +24,8 @@ from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
 import logging
+import subprocess
+import os
 from datetime import datetime
 from .models import (
     Facultad,
@@ -156,7 +162,7 @@ class HistorialViewSet(viewsets.ModelViewSet):
 
 @api_view(["DELETE"])
 @transaction.atomic
-def cancelarSolicitud(request , id_solicitud):
+def cancelarSolicitud(request, id_solicitud):
     if request.method == "DELETE":
 
         try:
@@ -165,7 +171,11 @@ def cancelarSolicitud(request , id_solicitud):
             desencolar_solicitud(solicitud)
 
             # Enviar correo una vez la solicitud ha sido cancelada
-            enviar_email("DATACORE-SOLICITUD CANCELADA", solicitud.id_user_id , "Su solicitud ha sido cancelada.")
+            enviar_email(
+                "DATACORE-SOLICITUD CANCELADA",
+                solicitud.id_user_id,
+                "Su solicitud ha sido cancelada.",
+            )
 
             return Response(SolicitudSerializer(solicitud).data)
 
@@ -174,9 +184,7 @@ def cancelarSolicitud(request , id_solicitud):
                 {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
             )
         except ValueError as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -230,6 +238,7 @@ def encolar_solicitud(id_recurso):
 
     return recurso.solicitudes_encoladas
 
+
 @transaction.atomic
 def desencolar_solicitud(solicitud):
     # Obtener el recurso por su ID
@@ -242,9 +251,8 @@ def desencolar_solicitud(solicitud):
 
     # Actualizar posiciones de otras solicitudes
     Solicitud.objects.filter(
-        id_recurso=solicitud.id_recurso_id,
-        posicion_cola__gt=posicion_original
-    ).update(posicion_cola=models.F('posicion_cola') - 1)
+        id_recurso=solicitud.id_recurso_id, posicion_cola__gt=posicion_original
+    ).update(posicion_cola=models.F("posicion_cola") - 1)
 
     # Incrementar el contador de solicitudes encoladas de manera atómica
     recurso.solicitudes_encoladas = F("solicitudes_encoladas") - 1
@@ -341,3 +349,26 @@ class UserOnlyView(APIView):
 
     def get(self, request):
         return Response({"message": "Hello, user!"})
+
+
+@api_view(["POST"])
+def run_script(request):
+    try:
+        filename = request.data.get("filename")
+        script_path = os.path.join(settings.BASE_DIR, "scripts", filename)
+
+        if not os.path.exists(script_path):
+            return JsonResponse({"status": "error", "error": "Script no encontrado"})
+
+        result = subprocess.run(
+            ["python", script_path], capture_output=True, text=True, check=True
+        )
+        output = result.stdout
+        return JsonResponse({"status": "success", "output": output})
+    except Exception as e:
+        return JsonResponse(
+            {
+                "status": "error",
+                "error": str(e),
+            }
+        )
