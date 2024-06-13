@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from django.db import transaction , models
+from django.db import transaction, models
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
@@ -124,6 +124,18 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    @action(detail=False, methods=["get"])
+    def validos(self, request):
+        users = User.objects.exclude(id_estado_persona=1)
+        serializer = self.get_serializer(users, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def desautorizados(self, request):
+        users = User.objects.filter(id_estado_persona=1)
+        serializer = self.get_serializer(users, many=True)
+        return Response(serializer.data)
+
 
 class ArchivoViewSet(viewsets.ModelViewSet):
     queryset = Archivo.objects.all()
@@ -156,7 +168,7 @@ class HistorialViewSet(viewsets.ModelViewSet):
 
 @api_view(["DELETE"])
 @transaction.atomic
-def cancelarSolicitud(request , id_solicitud):
+def cancelarSolicitud(request, id_solicitud):
     if request.method == "DELETE":
 
         try:
@@ -165,7 +177,11 @@ def cancelarSolicitud(request , id_solicitud):
             desencolar_solicitud(solicitud)
 
             # Enviar correo una vez la solicitud ha sido cancelada
-            enviar_email("DATACORE-SOLICITUD CANCELADA", solicitud.id_user_id , "Su solicitud ha sido cancelada.")
+            enviar_email(
+                "DATACORE-SOLICITUD CANCELADA",
+                solicitud.id_user_id,
+                "Su solicitud ha sido cancelada.",
+            )
 
             return Response(SolicitudSerializer(solicitud).data)
 
@@ -174,9 +190,7 @@ def cancelarSolicitud(request , id_solicitud):
                 {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
             )
         except ValueError as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -230,6 +244,7 @@ def encolar_solicitud(id_recurso):
 
     return recurso.solicitudes_encoladas
 
+
 @transaction.atomic
 def desencolar_solicitud(solicitud):
     # Obtener el recurso por su ID
@@ -242,9 +257,8 @@ def desencolar_solicitud(solicitud):
 
     # Actualizar posiciones de otras solicitudes
     Solicitud.objects.filter(
-        id_recurso=solicitud.id_recurso_id,
-        posicion_cola__gt=posicion_original
-    ).update(posicion_cola=models.F('posicion_cola') - 1)
+        id_recurso=solicitud.id_recurso_id, posicion_cola__gt=posicion_original
+    ).update(posicion_cola=models.F("posicion_cola") - 1)
 
     # Incrementar el contador de solicitudes encoladas de manera atómica
     recurso.solicitudes_encoladas = F("solicitudes_encoladas") - 1
