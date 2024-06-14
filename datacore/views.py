@@ -152,7 +152,7 @@ class SolicitudViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitudSerializer
 
     def list_por_usuario(self, request, id_user):
-        solicitudes = self.queryset.filter(id_user_id=id_user)
+        solicitudes = self.queryset.filter(id_user_id=id_user).order_by("-fecha_registro")
         serializer = SolicitudesSerializer(solicitudes, many=True)
         return Response(serializer.data)
 
@@ -162,7 +162,7 @@ class SolicitudViewSet(viewsets.ModelViewSet):
 
 
 class HistorialViewSet(viewsets.ModelViewSet):
-    queryset = Solicitud.objects.all()
+    queryset = Solicitud.objects.all().order_by("-fecha_registro")
     serializer_class = SolicitudesSerializer
 
 

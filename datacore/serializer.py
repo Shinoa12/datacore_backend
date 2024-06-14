@@ -320,10 +320,10 @@ class SolicitudesSerializer(serializers.ModelSerializer):
         try:
             cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
             if cpu:
-                return "CPU"
+                return CPU.objects.get(id_recurso=obj.id_recurso).nombre
             else:
-                return "GPU"
-        except CPU.DoesNotExist:
+                return GPU.objects.get(id_recurso=obj.id_recurso).nombre
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
             return None
 
     def get_email(self, obj):
