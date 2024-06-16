@@ -24,7 +24,7 @@ pycparser==2.21
 PyJWT==2.4.0
 pyparsing==3.1.2
 python-dotenv==0.20.0
-requests==2.31.0
+requests==2.27.1
 rsa==4.9
 setuptools==69.5.1
 six==1.16.0
