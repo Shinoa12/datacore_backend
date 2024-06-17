@@ -281,13 +281,14 @@ def generate_tokens_for_user(user):
 
 
 def authenticate_or_create_user(email, fname, lname):
+    is_new_user = False
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         # Obtener valores predeterminados específicos por sus IDs
-        default_estado_persona = EstadoPersona.objects.get(nombre="Pendiente")
+        default_estado_persona = EstadoPersona.objects.get(nombre="PENDIENTE")
         default_especialidad = Especialidad.objects.get(nombre="INFORMATICA")
-        default_facultad = Facultad.objects.get(nombre="CIENCIA E INGENIERIA")
+        default_facultad = Facultad.objects.get(nombre="CIENCIAS E INGENIERIA")
         user = User.objects.create_user(
             username=email,
             email=email,
@@ -299,7 +300,8 @@ def authenticate_or_create_user(email, fname, lname):
         )
         default_group = Group.objects.get(name="USER")
         user.groups.add(default_group)
-    return user
+        is_new_user=True
+    return user,  is_new_user
 
 
 class LoginWithGoogle(APIView):
@@ -317,7 +319,8 @@ class LoginWithGoogle(APIView):
                 first_name = id_token.get("given_name", "")
                 last_name = id_token.get("family_name", "")
 
-                user = authenticate_or_create_user(user_email, first_name, last_name)
+
+                user, is_new_user = authenticate_or_create_user(user_email, first_name, last_name)
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
 
@@ -331,6 +334,7 @@ class LoginWithGoogle(APIView):
                         "is_admin": user.groups.filter(name="ADMIN").exists(),
                         "estado": user.id_estado_persona.id_estado_persona,
                         "id_user": user.id,
+                        "is_new_user":is_new_user
                     }
                 )
             return Response(
@@ -354,3 +358,21 @@ class UserOnlyView(APIView):
 
     def get(self, request):
         return Response({"message": "Hello, user!"})
+    
+@api_view(['POST'])
+def enviar_email_view(request):
+    try:
+        asunto = request.data.get('asunto')
+        id_user = request.data.get('id_user')
+        mensaje = request.data.get('mensaje')
+
+        if not asunto or not id_user or not mensaje:
+            return Response({"error": "Todos los campos son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        enviar_email(asunto, id_user, mensaje)
+        return Response({"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
