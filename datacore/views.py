@@ -203,7 +203,6 @@ def crear_solicitud(request):
     if request.method == "POST":
         id_recurso = request.data.get("id_recurso")
 
-        # Ensure 'id_recurso' is provided
         if not id_recurso:
             return Response(
                 {"error": "id_recurso is required"}, status=status.HTTP_400_BAD_REQUEST
