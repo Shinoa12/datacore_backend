@@ -146,7 +146,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    "https://datacorepucp.store",
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -170,7 +170,7 @@ SOCIALACCOUNT_PROVIDERS = {
         "AUTH_PARAMS": {
             "access_type": "online",
         },
-        "REDIRECT_URI": "http://localhost:5173/",
+        "REDIRECT_URI": "https://datacorepucp.store",
     }
 }
 
