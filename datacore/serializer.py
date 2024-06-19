@@ -40,7 +40,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
             parametros_ejecucion=validated_data["parametros_ejecucion"],
             codigo_solicitud="ABD",
             fecha_registro=datetime.now(),
-            estado_solicitud="creada",
+            estado_solicitud="Creada",
             posicion_cola=posicion_cola_obtenida,
             fecha_finalizada=datetime(1, 1, 1),
             fecha_procesamiento=datetime(1, 1, 1),
