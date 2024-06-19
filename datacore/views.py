@@ -250,7 +250,7 @@ def desencolar_solicitud(solicitud):
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
     posicion_original = solicitud.posicion_cola
-    solicitud.estado_solicitud = "cancelada"
+    solicitud.estado_solicitud = "Cancelada"
     solicitud.posicion_cola = 0
     solicitud.save()
 
