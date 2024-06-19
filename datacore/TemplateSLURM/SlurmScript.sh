@@ -1,21 +1,17 @@
 #!/bin/bash
-#SBATCH --job-name={{ solicitud.codigo_solicitud }}
-#SBATCH --output=output_%j.txt
-#SBATCH --error=error_%j.txt
-#SBATCH --partition={{ resource_type }}
-
-# URLs de tu API Django
-START_PROCESS_URL="http://datacore/api/solicitudes/{{ solicitud.id }}/start_process/"
-FINISH_PROCESS_URL="http://datacore/api/solicitudes/{{ solicitud.id }}/finish_process/"
-
-# Prolog y Epilog para srun
-#SBATCH --prolog=slurm_prolog.sh
-#SBATCH --epilog=slurm_epilog.sh
+#enviar iniciode ejecucion al api
+curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://datacore/api/solicitudes/{{ solicitud.id }}/start_process/
 
 # Script del usuario
 {{ user_script }}
 
 # Comandos adicionales si es necesario
-srun {{ solicitud.parametros_ejecucion }}
+sbatch user_script.sh
 
+OUTPUT_FILE=output_${SLURM_JOB_ID}.txt
 
+# Copiar el archivo de salida al controlador (dcprincipal)
+scp $OUTPUT_FILE slurm@dcprincipal:/path/to/destination/
+
+# Enviar solicitud HTTP a la API para notificar el final del proceso
+curl -X POST -H "Content-Type: application/json" -d '{"status": "finished"}' http://datacore/api/solicitudes/{{ solicitud.id }}/finish_process/
