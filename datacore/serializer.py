@@ -48,12 +48,12 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
         # Configurar cliente S3
         s3_client = boto3.client(
-            's3',
+            "s3",
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
+            region_name=settings.AWS_S3_REGION_NAME,
         )
-        
+
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
 
         for archivo in archivos:
@@ -61,15 +61,17 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
             try:
                 # Subir archivo a S3
                 s3_client.upload_fileobj(archivo, bucket_name, archivo_ruta_s3)
-                
+
                 # Crear instancia de Archivo en la base de datos con la ruta S3
                 Archivo.objects.create(
                     ruta=f"https://{bucket_name}.s3.amazonaws.com/{archivo_ruta_s3}",
-                    id_solicitud=solicitud
+                    id_solicitud=solicitud,
                 )
             except Exception as e:
                 # Si algo falla, levantar una excepción para que la transacción se revierta
-                raise serializers.ValidationError(f"Error al subir {archivo.name} a S3: {str(e)}")
+                raise serializers.ValidationError(
+                    f"Error al subir {archivo.name} a S3: {str(e)}"
+                )
 
         return solicitud
 
@@ -344,10 +346,10 @@ class SolicitudesSerializer(serializers.ModelSerializer):
         try:
             cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
             if cpu:
-                return "CPU"
+                return CPU.objects.get(id_recurso=obj.id_recurso).nombre
             else:
-                return "GPU"
-        except CPU.DoesNotExist:
+                return GPU.objects.get(id_recurso=obj.id_recurso).nombre
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
             return None
 
     def get_email(self, obj):
