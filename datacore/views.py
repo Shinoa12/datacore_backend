@@ -173,6 +173,67 @@ def cancelarSolicitud(request, id_solicitud):
 
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "Cancelada"
+            # Descolar del recurso
+            desencolar_solicitud(solicitud)
+
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email(
+                "DATACORE-SOLICITUD CANCELADA",
+                solicitud.id_user_id,
+                "Su solicitud ha sido cancelada.",
+            )
+
+            return Response(SolicitudSerializer(solicitud).data)
+
+        except Solicitud.DoesNotExist:
+            return Response(
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@api_view(["POST"])
+def inicioProcesamientoSolicitud(request, id_solicitud):
+    if request.method == "POST":
+
+        try:
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "En proceso"
+            solicitud.fecha_procesamiento = datetime.now
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email(
+                "DATACORE-SOLICITUD EN PROCESO",
+                solicitud.id_user_id,
+                "Su solicitud {solicitud.id_solicitud} se encuentra en la posición 1 y ha iniciado su procesamiento",
+            )
+
+            return Response(SolicitudSerializer(solicitud).data)
+
+        except Solicitud.DoesNotExist:
+            return Response(
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@api_view(["POST"])
+@transaction.atomic
+def finProcesamientoSolicitud(request, id_solicitud):
+    if request.method == "POST":
+
+        try:
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "Finalizada"
+            solicitud.fecha_finalizada = datetime.now
             # Descolar del recurso
             desencolar_solicitud(solicitud)
 
@@ -250,7 +311,6 @@ def desencolar_solicitud(solicitud):
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
     posicion_original = solicitud.posicion_cola
-    solicitud.estado_solicitud = "cancelada"
     solicitud.posicion_cola = 0
     solicitud.save()
 
