@@ -1,4 +1,6 @@
 from rest_framework import serializers
+import boto3
+from django.conf import settings
 from .models import (
     Facultad,
     Especialidad,
@@ -38,15 +40,39 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
             parametros_ejecucion=validated_data["parametros_ejecucion"],
             codigo_solicitud="ABD",
             fecha_registro=datetime.now(),
-            estado_solicitud="creada",
+            estado_solicitud="Creada",
             posicion_cola=posicion_cola_obtenida,
             fecha_finalizada=datetime(1, 1, 1),
             fecha_procesamiento=datetime(1, 1, 1),
         )
-        for archivo in archivos:
-            archivo_ruta = f"archivos/{archivo.name}"
 
-            Archivo.objects.create(ruta=archivo_ruta, id_solicitud=solicitud)
+        # Configurar cliente S3
+        s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME,
+        )
+
+        bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+
+        for archivo in archivos:
+            archivo_ruta_s3 = f"archivos/{solicitud.id_solicitud}/{archivo.name}"
+            try:
+                # Subir archivo a S3
+                s3_client.upload_fileobj(archivo, bucket_name, archivo_ruta_s3)
+
+                # Crear instancia de Archivo en la base de datos con la ruta S3
+                Archivo.objects.create(
+                    ruta=f"https://{bucket_name}.s3.amazonaws.com/{archivo_ruta_s3}",
+                    id_solicitud=solicitud,
+                )
+            except Exception as e:
+                # Si algo falla, levantar una excepción para que la transacción se revierta
+                raise serializers.ValidationError(
+                    f"Error al subir {archivo.name} a S3: {str(e)}"
+                )
+
         return solicitud
 
 
@@ -320,10 +346,10 @@ class SolicitudesSerializer(serializers.ModelSerializer):
         try:
             cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
             if cpu:
-                return "CPU"
+                return CPU.objects.get(id_recurso=obj.id_recurso).nombre
             else:
-                return "GPU"
-        except CPU.DoesNotExist:
+                return GPU.objects.get(id_recurso=obj.id_recurso).nombre
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
             return None
 
     def get_email(self, obj):
