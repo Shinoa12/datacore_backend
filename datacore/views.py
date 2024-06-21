@@ -103,6 +103,12 @@ class CPUViewSet(viewsets.ModelViewSet):
         serializer = HerramientaSerializer(herramientas, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def habilitados(self, request):
+        cpus = CPU.objects.filter(id_recurso__estado=True)
+        serializer = self.get_serializer(cpus, many=True)
+        return Response(serializer.data)
+
 
 class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
@@ -117,6 +123,12 @@ class GPUViewSet(viewsets.ModelViewSet):
         gpu = self.get_object()
         herramientas = gpu.id_recurso.herramientas.all()
         serializer = HerramientaSerializer(herramientas, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def habilitados(self, request):
+        gpus = GPU.objects.filter(id_recurso__estado=True)
+        serializer = self.get_serializer(gpus, many=True)
         return Response(serializer.data)
 
 
@@ -152,7 +164,9 @@ class SolicitudViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitudSerializer
 
     def list_por_usuario(self, request, id_user):
-        solicitudes = self.queryset.filter(id_user_id=id_user).order_by("-fecha_registro")
+        solicitudes = self.queryset.filter(id_user_id=id_user).order_by(
+            "-fecha_registro"
+        )
         serializer = SolicitudesSerializer(solicitudes, many=True)
         return Response(serializer.data)
 
@@ -300,8 +314,8 @@ def authenticate_or_create_user(email, fname, lname):
         )
         default_group = Group.objects.get(name="USER")
         user.groups.add(default_group)
-        is_new_user=True
-    return user,  is_new_user
+        is_new_user = True
+    return user, is_new_user
 
 
 class LoginWithGoogle(APIView):
@@ -319,8 +333,9 @@ class LoginWithGoogle(APIView):
                 first_name = id_token.get("given_name", "")
                 last_name = id_token.get("family_name", "")
 
-
-                user, is_new_user = authenticate_or_create_user(user_email, first_name, last_name)
+                user, is_new_user = authenticate_or_create_user(
+                    user_email, first_name, last_name
+                )
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
 
@@ -334,7 +349,7 @@ class LoginWithGoogle(APIView):
                         "is_admin": user.groups.filter(name="ADMIN").exists(),
                         "estado": user.id_estado_persona.id_estado_persona,
                         "id_user": user.id,
-                        "is_new_user":is_new_user
+                        "is_new_user": is_new_user,
                     }
                 )
             return Response(
@@ -358,19 +373,25 @@ class UserOnlyView(APIView):
 
     def get(self, request):
         return Response({"message": "Hello, user!"})
-    
-@api_view(['POST'])
+
+
+@api_view(["POST"])
 def enviar_email_view(request):
     try:
-        asunto = request.data.get('asunto')
-        id_user = request.data.get('id_user')
-        mensaje = request.data.get('mensaje')
+        asunto = request.data.get("asunto")
+        id_user = request.data.get("id_user")
+        mensaje = request.data.get("mensaje")
 
         if not asunto or not id_user or not mensaje:
-            return Response({"error": "Todos los campos son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Todos los campos son requeridos."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         enviar_email(asunto, id_user, mensaje)
-        return Response({"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK
+        )
 
     except ValueError as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
