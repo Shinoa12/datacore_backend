@@ -30,6 +30,7 @@ router.register(r"historial", views.HistorialViewSet, "historial")
 router.register(r"archivos", views.ArchivoViewSet, "archivos")
 router.register(r"herramientas", views.HerramientaViewSet, "herramientas")
 router.register(r"librerias", views.LibreriaViewSet, "librerias")
+router.register(r"ajustes", views.AjustesViewSet, "ajustes")
 
 urlpatterns = [
     path("api/v1/", include(router.urls)),
@@ -66,5 +67,5 @@ urlpatterns = [
         views.cancelarSolicitud,
         name="cancelarSolicitud",
     ),
-    path('api/v1/enviar-email/', enviar_email_view, name='enviar_email'),
+    path("api/v1/enviar-email/", enviar_email_view, name="enviar_email"),
 ]

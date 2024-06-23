@@ -33,6 +33,7 @@ from .models import (
     Recurso,
     Herramienta,
     Libreria,
+    Ajustes,
 )
 from .serializer import (
     FacultadSerializer,
@@ -48,6 +49,7 @@ from .serializer import (
     SolicitudDetalleSerializer,
     HerramientaSerializer,
     LibreriaSerializer,
+    AjustesSerializer,
 )
 
 
@@ -397,3 +399,8 @@ def enviar_email_view(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AjustesViewSet(viewsets.ModelViewSet):
+    queryset = Ajustes.objects.all()
+    serializer_class = AjustesSerializer
