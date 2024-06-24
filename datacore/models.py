@@ -23,6 +23,7 @@ class EstadoPersona(models.Model):
 class User(AbstractUser):
     motivo_desautorizado = models.TextField(blank=True)
     recursos_max = models.PositiveIntegerField(default=1)
+    horas_max = models.PositiveIntegerField(default=1)
     id_estado_persona = models.ForeignKey(
         EstadoPersona, on_delete=models.CASCADE, null=False
     )
