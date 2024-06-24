@@ -33,6 +33,7 @@ from .models import (
     Recurso,
     Herramienta,
     Libreria,
+    Ajustes,
 )
 from .serializer import (
     FacultadSerializer,
@@ -48,6 +49,7 @@ from .serializer import (
     SolicitudDetalleSerializer,
     HerramientaSerializer,
     LibreriaSerializer,
+    AjustesSerializer,
 )
 
 
@@ -397,3 +399,47 @@ def enviar_email_view(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AjustesViewSet(viewsets.ModelViewSet):
+    queryset = Ajustes.objects.all()
+    serializer_class = AjustesSerializer
+
+    @action(detail=False, methods=["get"], url_path="codigo/(?P<codigo>\w+)")
+    def get_by_code(self, request, codigo=None):
+        try:
+            ajuste = self.queryset.get(codigo=codigo)
+            serializer = self.serializer_class(ajuste)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Ajustes.DoesNotExist:
+            return Response(
+                {"error": f"Ajuste '{codigo}' no encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["put"], url_path="actualizar-varios")
+    def bulk_update(self, request):
+        data = request.data
+
+        try:
+            for item in data:
+                id = item.get("id")
+                ajuste = self.queryset.get(id=id)
+                serializer = self.serializer_class(ajuste, data=item)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {"message": "Tabla actualizada correctamente"},
+                status=status.HTTP_200_OK,
+            )
+        except Ajustes.DoesNotExist:
+            return Response(
+                {"error": "Uno o más de los ajustes no existe."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

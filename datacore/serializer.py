@@ -13,6 +13,7 @@ from .models import (
     Archivo,
     Herramienta,
     Libreria,
+    Ajustes,
 )
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from datetime import datetime
@@ -358,3 +359,9 @@ class SolicitudesSerializer(serializers.ModelSerializer):
             return user.email
         except User.DoesNotExist:
             return None
+
+
+class AjustesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ajustes
+        fields = "__all__"
