@@ -16,7 +16,14 @@ curl -O {{ user_py_url }}
 # Dar permisos de ejecución al archivo .sh descargado
 chmod +x {{ user_bash_url | split('/')[-1] }}
 
-# Agregar el fragmento adicional al inicio del script descargado
+# Dar permisos de ejecución al archivo .sh descargado
+chmod +x {{ user_py_url | split('/')[-1] }}
+
+#copiar .py en la instancia para que el sh pueda ejecutarlo
+scp -i key/linux-key.pem {{ user_py_url | split('/')[-1] }} ubuntu@dcrsc1:/home/ubuntu/{{ user_py_url | split('/')[-1] }}
+
+
+# Agregar el fragmento adicional al inicio del script descargado para que pueda ejecutarse por slurm
 cat <<EOT > modified_{{ user_bash_url | split('/')[-1] }}
 #!/bin/bash
 #SBATCH --job-name=test_job
