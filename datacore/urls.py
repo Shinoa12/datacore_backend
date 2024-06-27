@@ -4,6 +4,7 @@ from rest_framework import routers
 from datacore import views
 from .views import LoginWithGoogle
 from .views import enviar_email_view
+from .views import requests_by_month, requests_by_resource, requests_by_specialty, average_processing_duration,solicitudes_creadas,solicitudes_en_proceso,solicitudes_finalizadas
 from rest_framework_simplejwt.views import TokenVerifyView
 
 especialidades_por_facultad = views.EspecialidadViewSet.as_view(
@@ -68,4 +69,11 @@ urlpatterns = [
         name="cancelarSolicitud",
     ),
     path("api/v1/enviar-email/", enviar_email_view, name="enviar_email"),
+    path('api/v1/requests_by_month/', requests_by_month),
+    path('api/v1/requests_by_resource/', requests_by_resource),
+    path('api/v1/requests_by_specialty/', requests_by_specialty),
+    path('api/v1/average_processing_duration/', average_processing_duration),
+    path('api/v1/solicitudes_creadas/', solicitudes_creadas, name='solicitudes_creadas'),
+    path('api/v1/solicitudes_en_proceso/', solicitudes_en_proceso, name='solicitudes_en_proceso'),
+    path('api/v1/solicitudes_finalizadas/', solicitudes_finalizadas, name='solicitudes_finalizadas'),
 ]
