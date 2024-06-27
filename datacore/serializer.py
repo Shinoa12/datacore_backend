@@ -13,6 +13,7 @@ from .models import (
     Archivo,
     Herramienta,
     Libreria,
+    Ajustes,
 )
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from datetime import datetime
@@ -44,7 +45,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
             parametros_ejecucion=validated_data["parametros_ejecucion"],
             codigo_solicitud="ABD",
             fecha_registro=datetime.now(),
-            estado_solicitud="creada",
+            estado_solicitud="Creada",
             posicion_cola=posicion_cola_obtenida,
             fecha_finalizada=datetime(1, 1, 1),
             fecha_procesamiento=datetime(1, 1, 1),
@@ -52,12 +53,12 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
         # Configurar cliente S3
         s3_client = boto3.client(
-            's3',
+            "s3",
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_NAME
+            region_name=settings.AWS_S3_REGION_NAME,
         )
-        
+
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
         archivo_bash = ""
         for archivo in archivos:
@@ -65,11 +66,11 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
             try:
                 # Subir archivo a S3
                 s3_client.upload_fileobj(archivo, bucket_name, archivo_ruta_s3)
-                
+
                 # Crear instancia de Archivo en la base de datos con la ruta S3
                 Archivo.objects.create(
                     ruta=f"https://{bucket_name}.s3.amazonaws.com/{archivo_ruta_s3}",
-                    id_solicitud=solicitud
+                    id_solicitud=solicitud,
                 )
 
                 # Si es un archivo bash, leer su contenido
@@ -81,7 +82,9 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
             except Exception as e:
                 # Si algo falla, levantar una excepción para que la transacción se revierta
-                raise serializers.ValidationError(f"Error al subir {archivo.name} a S3: {str(e)}")
+                raise serializers.ValidationError(
+                    f"Error al subir {archivo.name} a S3: {str(e)}"
+                )
 
         if user_script_content is None:
             raise serializers.ValidationError("El archivo bash del usuario no fue encontrado")
@@ -381,10 +384,10 @@ class SolicitudesSerializer(serializers.ModelSerializer):
         try:
             cpu = CPU.objects.filter(id_recurso=obj.id_recurso).exists()
             if cpu:
-                return "CPU"
+                return CPU.objects.get(id_recurso=obj.id_recurso).nombre
             else:
-                return "GPU"
-        except CPU.DoesNotExist:
+                return GPU.objects.get(id_recurso=obj.id_recurso).nombre
+        except (CPU.DoesNotExist, GPU.DoesNotExist):
             return None
 
     def get_email(self, obj):
@@ -393,3 +396,9 @@ class SolicitudesSerializer(serializers.ModelSerializer):
             return user.email
         except User.DoesNotExist:
             return None
+
+
+class AjustesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ajustes
+        fields = "__all__"

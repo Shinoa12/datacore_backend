@@ -23,6 +23,7 @@ class EstadoPersona(models.Model):
 class User(AbstractUser):
     motivo_desautorizado = models.TextField(blank=True)
     recursos_max = models.PositiveIntegerField(default=1)
+    horas_max = models.PositiveIntegerField(default=1)
     id_estado_persona = models.ForeignKey(
         EstadoPersona, on_delete=models.CASCADE, null=False
     )
@@ -101,3 +102,12 @@ class Archivo(models.Model):
     id_solicitud = models.AutoField(primary_key=True)
     ruta = models.CharField(max_length=200)
     id_solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, null=False)
+
+
+class Ajustes(models.Model):
+    id = models.AutoField(primary_key=True)
+    codigo = models.CharField(max_length=50, unique=True, null=False, blank=False)
+    nombre = models.CharField(max_length=100, null=False, blank=False)
+    descripcion = models.CharField(max_length=200, null=False, blank=False)
+    valor = models.CharField(max_length=200, null=False, blank=False)
+    tipo = models.CharField(max_length=50, null=False, blank=False)

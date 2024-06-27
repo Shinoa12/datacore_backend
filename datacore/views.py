@@ -21,6 +21,7 @@ from django.contrib.auth.models import Group
 from .utils import enviar_email
 from django.conf import settings
 import logging
+
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 import paramiko
@@ -30,6 +31,10 @@ from datetime import datetime
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+
+from django.db.models.functions import ExtractMonth
+from django.db.models import F,Count,Avg,DurationField, ExpressionWrapper
+
 from datetime import datetime
 from .models import (
     Facultad,
@@ -43,6 +48,7 @@ from .models import (
     Recurso,
     Herramienta,
     Libreria,
+    Ajustes,
 )
 from .serializer import (
     FacultadSerializer,
@@ -58,6 +64,7 @@ from .serializer import (
     SolicitudDetalleSerializer,
     HerramientaSerializer,
     LibreriaSerializer,
+    AjustesSerializer,
 )
 
 
@@ -113,6 +120,12 @@ class CPUViewSet(viewsets.ModelViewSet):
         serializer = HerramientaSerializer(herramientas, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def habilitados(self, request):
+        cpus = CPU.objects.filter(id_recurso__estado=True)
+        serializer = self.get_serializer(cpus, many=True)
+        return Response(serializer.data)
+
 
 class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
@@ -127,6 +140,12 @@ class GPUViewSet(viewsets.ModelViewSet):
         gpu = self.get_object()
         herramientas = gpu.id_recurso.herramientas.all()
         serializer = HerramientaSerializer(herramientas, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def habilitados(self, request):
+        gpus = GPU.objects.filter(id_recurso__estado=True)
+        serializer = self.get_serializer(gpus, many=True)
         return Response(serializer.data)
 
 
@@ -162,7 +181,9 @@ class SolicitudViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitudSerializer
 
     def list_por_usuario(self, request, id_user):
-        solicitudes = self.queryset.filter(id_user_id=id_user).order_by("-fecha_registro")
+        solicitudes = self.queryset.filter(id_user_id=id_user).order_by(
+            "-fecha_registro"
+        )
         serializer = SolicitudesSerializer(solicitudes, many=True)
         return Response(serializer.data)
 
@@ -366,6 +387,7 @@ def desencolar_solicitud(solicitud):
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
     posicion_original = solicitud.posicion_cola
+    solicitud.estado_solicitud = "Cancelada"
     solicitud.posicion_cola = 0
     solicitud.save()
 
@@ -415,8 +437,8 @@ def authenticate_or_create_user(email, fname, lname):
         )
         default_group = Group.objects.get(name="USER")
         user.groups.add(default_group)
-        is_new_user=True
-    return user,  is_new_user
+        is_new_user = True
+    return user, is_new_user
 
 
 class LoginWithGoogle(APIView):
@@ -434,8 +456,9 @@ class LoginWithGoogle(APIView):
                 first_name = id_token.get("given_name", "")
                 last_name = id_token.get("family_name", "")
 
-
-                user, is_new_user = authenticate_or_create_user(user_email, first_name, last_name)
+                user, is_new_user = authenticate_or_create_user(
+                    user_email, first_name, last_name
+                )
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
 
@@ -449,7 +472,7 @@ class LoginWithGoogle(APIView):
                         "is_admin": user.groups.filter(name="ADMIN").exists(),
                         "estado": user.id_estado_persona.id_estado_persona,
                         "id_user": user.id,
-                        "is_new_user":is_new_user
+                        "is_new_user": is_new_user,
                     }
                 )
             return Response(
@@ -473,21 +496,114 @@ class UserOnlyView(APIView):
 
     def get(self, request):
         return Response({"message": "Hello, user!"})
-    
-@api_view(['POST'])
+
+
+@api_view(["POST"])
 def enviar_email_view(request):
     try:
-        asunto = request.data.get('asunto')
-        id_user = request.data.get('id_user')
-        mensaje = request.data.get('mensaje')
+        asunto = request.data.get("asunto")
+        id_user = request.data.get("id_user")
+        mensaje = request.data.get("mensaje")
 
         if not asunto or not id_user or not mensaje:
-            return Response({"error": "Todos los campos son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Todos los campos son requeridos."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         enviar_email(asunto, id_user, mensaje)
-        return Response({"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK
+        )
 
     except ValueError as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AjustesViewSet(viewsets.ModelViewSet):
+    queryset = Ajustes.objects.all()
+    serializer_class = AjustesSerializer
+
+    @action(detail=False, methods=["get"], url_path="codigo/(?P<codigo>\w+)")
+    def get_by_code(self, request, codigo=None):
+        try:
+            ajuste = self.queryset.get(codigo=codigo)
+            serializer = self.serializer_class(ajuste)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Ajustes.DoesNotExist:
+            return Response(
+                {"error": f"Ajuste '{codigo}' no encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["put"], url_path="actualizar-varios")
+    def bulk_update(self, request):
+        data = request.data
+
+        try:
+            for item in data:
+                id = item.get("id")
+                ajuste = self.queryset.get(id=id)
+                serializer = self.serializer_class(ajuste, data=item)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {"message": "Tabla actualizada correctamente"},
+                status=status.HTTP_200_OK,
+            )
+        except Ajustes.DoesNotExist:
+            return Response(
+                {"error": "Uno o más de los ajustes no existe."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def requests_by_month(request):
+    data = Solicitud.objects.annotate(month=ExtractMonth('fecha_registro')).values('month').annotate(count=Count('id_solicitud')).order_by('month')
+    return Response(data)
+
+@api_view(['GET'])
+def requests_by_resource(request):
+    cpu_count = CPU.objects.annotate(count=Count('id_recurso')).count()
+    gpu_count = GPU.objects.annotate(count=Count('id_recurso')).count()
+    return Response({'CPU': cpu_count, 'GPU': gpu_count})
+
+@api_view(['GET'])
+def requests_by_specialty(request):
+    data = Especialidad.objects.annotate(count=Count('user__solicitud')).values('nombre', 'count')
+    return Response(data)
+
+
+@api_view(['GET'])
+def average_processing_duration(request):
+    data = Solicitud.objects.annotate(
+        processing_duration=ExpressionWrapper(
+            F('fecha_finalizada') - F('fecha_procesamiento'),
+            output_field=DurationField()
+        )
+    ).aggregate(
+        avg_duration=Avg('processing_duration')
+    )
+    return Response(data)
+@api_view(['GET'])
+def solicitudes_creadas(request):
+    count = Solicitud.objects.filter(estado_solicitud="Creada").count()
+    return Response({"count": count})
+
+@api_view(['GET'])
+def solicitudes_en_proceso(request):
+    count = Solicitud.objects.filter(estado_solicitud="En Proceso").count()
+    return Response({"count": count})
+
+@api_view(['GET'])
+def solicitudes_finalizadas(request):
+    count = Solicitud.objects.filter(estado_solicitud="Cancelada").count()
+    return Response({"count": count})
