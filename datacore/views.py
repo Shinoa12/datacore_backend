@@ -247,6 +247,8 @@ def download_and_send_to_ec2(solicitud):
 
     with SCPClient(ssh.get_transport()) as scp:
         archivos = Archivo.objects.filter(id_solicitud_id=solicitud.id_solicitud)
+        print("IdSol" + solicitud.id_solicitud)
+        print("archivos" + archivos)
         for archivo in archivos:
             obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=archivo.ruta)
             file_stream = BytesIO(obj['Body'].read())
