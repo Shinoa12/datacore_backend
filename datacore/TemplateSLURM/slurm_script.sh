@@ -9,6 +9,7 @@
 curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/
 nombre_sh={{ user_bash }}
 
+echo nombre_sh
 sudo chmod +x nombre_sh
 ./nombre_sh
 
