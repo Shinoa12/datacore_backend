@@ -20,6 +20,7 @@ from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
 from django.conf import settings
+import os
 key_path = os.path.join(settings.BASE_DIR, 'key/linux-key.pem')
 import logging
 
