@@ -64,7 +64,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
         for archivo in archivos:
             archivo_ruta_s3 = f"archivos/{solicitud.id_solicitud}/{archivo.name}"
             try:
-                # Subir archivo a S3
+                archivo.seek(0)  # Ensure the file pointer is at the beginning before upload
                 s3_client.upload_fileobj(archivo, bucket_name, archivo_ruta_s3)
 
                 # Crear instancia de Archivo en la base de datos con la ruta S3
@@ -76,9 +76,10 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
                 # Si es un archivo bash, leer su contenido
                 if archivo.name.endswith('.sh'):
                     archivo_bash = archivo.name
-                    archivo.seek(0)  # Asegurarse de que estamos leyendo desde el inicio del archivo
-                    user_script_content = archivo.read().decode('utf-8')
-
+       
+                    # user_script_content = archivo.read().decode('utf-8')
+                    # if not user_script_content:
+                    #     raise serializers.ValidationError("El contenido del archivo bash es vacío")
 
             except Exception as e:
                 # Si algo falla, levantar una excepción para que la transacción se revierta
@@ -86,15 +87,15 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
                     f"Error al subir {archivo.name} a S3: {str(e)}"
                 )
 
-        if user_script_content is None:
-            raise serializers.ValidationError("El archivo bash del usuario no fue encontrado")
+        # if user_script_content is None:
+        #     raise serializers.ValidationError("El archivo bash del usuario no fue encontrado")
 
         # Determinar el tipo de recurso
         #resource_type = 'cpu' if isinstance(solicitud.id_recurso, CPU) else 'gpu'
         resource_type = 'resource1'
 
         # Renderizar el template con los datos de la solicitud
-        slurm_script_content = render_to_string('./TemplateSLURM/slurm_script.sh', {
+        slurm_script_content = render_to_string('slurm_script.sh', {
             'codigo_solicitud': solicitud.id_solicitud,
             'resource_type': resource_type,
             'user_bash' : archivo_bash ,
