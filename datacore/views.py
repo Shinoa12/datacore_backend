@@ -246,7 +246,7 @@ def download_and_send_to_ec2(solicitud):
     ssh.connect(recurso.direccion_ip, username=recurso.user, key_filename= key_path) #Conectar a EC2 requiere ip , username y key
 
     with SCPClient(ssh.get_transport()) as scp:
-        archivos = Archivo.objects.filter(solicitud_id=solicitud.solicitud_id)
+        archivos = Archivo.objects.filter(solicitud_id=solicitud.id_solicitud)
         for archivo in archivos:
             obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=archivo.url)
             file_stream = BytesIO(obj['Body'].read())
