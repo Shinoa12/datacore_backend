@@ -91,7 +91,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
         resource_type = 'dcrsc1'
 
         # Renderizar el template con los datos de la solicitud
-        slurm_script_content = render_to_string('slurm_script.sh', {
+        slurm_script_content = render_to_string('./TemplateSLURM/slurm_script.sh', {
             'codigo_solicitud': solicitud.id_solicitud,
             'resource_type': resource_type,
             'user_bash' : archivo_bash ,
