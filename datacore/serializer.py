@@ -59,8 +59,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
         )
         
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-        archivo_bash_route = ""
-        archivo_py_route = ""
+        archivo_bash = ""
         for archivo in archivos:
             archivo_ruta_s3 = f"archivos/{solicitud.id_solicitud}/{archivo.name}"
             try:
@@ -75,12 +74,10 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
                 # Si es un archivo bash, leer su contenido
                 if archivo.name.endswith('.sh'):
-                    archivo_bash_route = archivo.name
+                    archivo_bash = archivo.name
                     archivo.seek(0)  # Asegurarse de que estamos leyendo desde el inicio del archivo
                     user_script_content = archivo.read().decode('utf-8')
 
-                if archivo.name.endswith('.py'):
-                    archivo_py_route = archivo.name
 
             except Exception as e:
                 # Si algo falla, levantar una excepción para que la transacción se revierta
@@ -91,15 +88,13 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
         # Determinar el tipo de recurso
         #resource_type = 'cpu' if isinstance(solicitud.id_recurso, CPU) else 'gpu'
-        resource_type = 'debug'
+        resource_type = 'dcrsc1'
 
         # Renderizar el template con los datos de la solicitud
         slurm_script_content = render_to_string('slurm_script.sh', {
-            'solicitud': solicitud,
-            'user_script': user_script_content,
+            'codigo_solicitud': solicitud.id_solicitud,
             'resource_type': resource_type,
-            'user_bash_url' : f"https://{bucket_name}.s3.amazonaws.com/{archivo_bash_route}" ,
-            'user_py_url' : f"https://{bucket_name}.s3.amazonaws.com/{archivo_py_route}" , 
+            'user_bash' : archivo_bash ,
         })
 
         # Crear un archivo temporal para el script SLURM
