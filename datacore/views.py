@@ -20,6 +20,7 @@ from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
 from django.conf import settings
+key_path = os.path.join(settings.BASE_DIR, 'key/linux-key.pem')
 import logging
 
 import boto3
@@ -241,7 +242,7 @@ def download_and_send_to_ec2(solicitud):
     
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(recurso.direccion_ip, username=recurso.user, key_filename= '/home/ubuntu/key/linux-key.pem') #Conectar a EC2 requiere ip , username y key
+    ssh.connect(recurso.direccion_ip, username=recurso.user, key_filename= key_path) #Conectar a EC2 requiere ip , username y key
 
     with SCPClient(ssh.get_transport()) as scp:
         archivos = Archivo.objects.filter(solicitud_id=solicitud.solicitud_id)
