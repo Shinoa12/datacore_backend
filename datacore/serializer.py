@@ -17,6 +17,10 @@ from .models import (
 )
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from datetime import datetime
+from django.template.loader import render_to_string
+import subprocess
+import os
+from tempfile import NamedTemporaryFile
 
 
 class FacultadSerializer(serializers.ModelSerializer):
@@ -56,7 +60,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
         )
 
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
-
+        archivo_bash = ""
         for archivo in archivos:
             archivo_ruta_s3 = f"archivos/{solicitud.id_solicitud}/{archivo.name}"
             try:
@@ -68,11 +72,44 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
                     ruta=f"https://{bucket_name}.s3.amazonaws.com/{archivo_ruta_s3}",
                     id_solicitud=solicitud,
                 )
+
+                # Si es un archivo bash, leer su contenido
+                if archivo.name.endswith('.sh'):
+                    archivo_bash = archivo.name
+                    archivo.seek(0)  # Asegurarse de que estamos leyendo desde el inicio del archivo
+                    user_script_content = archivo.read().decode('utf-8')
+
+
             except Exception as e:
                 # Si algo falla, levantar una excepción para que la transacción se revierta
                 raise serializers.ValidationError(
                     f"Error al subir {archivo.name} a S3: {str(e)}"
                 )
+
+        if user_script_content is None:
+            raise serializers.ValidationError("El archivo bash del usuario no fue encontrado")
+
+        # Determinar el tipo de recurso
+        #resource_type = 'cpu' if isinstance(solicitud.id_recurso, CPU) else 'gpu'
+        resource_type = 'dcrsc1'
+
+        # Renderizar el template con los datos de la solicitud
+        slurm_script_content = render_to_string('./TemplateSLURM/slurm_script.sh', {
+            'codigo_solicitud': solicitud.id_solicitud,
+            'resource_type': resource_type,
+            'user_bash' : archivo_bash ,
+        })
+
+        # Crear un archivo temporal para el script SLURM
+        with NamedTemporaryFile(delete=False, mode='w', suffix='.sh') as tmp_file:
+            tmp_file.write(slurm_script_content)
+            tmp_file_path = tmp_file.name
+
+        # Enviar trabajo a SLURM
+        subprocess.run(['sbatch', tmp_file_path])
+
+        # Eliminar el archivo temporal
+        os.remove(tmp_file_path)
 
         return solicitud
 

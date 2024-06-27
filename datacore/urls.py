@@ -68,6 +68,16 @@ urlpatterns = [
         views.cancelarSolicitud,
         name="cancelarSolicitud",
     ),
+    path(
+        "api/v1/InicioProcesamientoSolicitud/<int:id_solicitud>/",
+        views.inicioProcesamientoSolicitud,
+        name="inicioProcesamientoSolicitud",
+    ),
+    path(
+        "api/v1/FinProcesamientoSolicitud/<int:id_solicitud>/",
+        views.finProcesamientoSolicitud,
+        name="finProcesamientoSolicitud",
+    ),
     path("api/v1/enviar-email/", enviar_email_view, name="enviar_email"),
     path('api/v1/requests_by_month/', requests_by_month),
     path('api/v1/requests_by_resource/', requests_by_resource),

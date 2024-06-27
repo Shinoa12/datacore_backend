@@ -19,9 +19,22 @@ from rest_framework.permissions import IsAuthenticated
 from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
+from django.conf import settings
 import logging
+
+import boto3
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+import paramiko
+from scp import SCPClient
+from io import BytesIO
+from datetime import datetime
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
 from django.db.models.functions import ExtractMonth
 from django.db.models import F,Count,Avg,DurationField, ExpressionWrapper
+
 from datetime import datetime
 from .models import (
     Facultad,
@@ -191,8 +204,114 @@ def cancelarSolicitud(request, id_solicitud):
 
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "Cancelada"
             # Descolar del recurso
             desencolar_solicitud(solicitud)
+
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email(
+                "DATACORE-SOLICITUD CANCELADA",
+                solicitud.id_user_id,
+                "Su solicitud ha sido cancelada.",
+            )
+
+            return Response(SolicitudSerializer(solicitud).data)
+
+        except Solicitud.DoesNotExist:
+            return Response(
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+def download_and_send_to_ec2(solicitud):
+
+    recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
+
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME
+    )
+    
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(recurso.direccion_ip, username=recurso.user, key_filename= '/home/ubuntu/key/linux-key.pem') #Conectar a EC2 requiere ip , username y key
+
+    with SCPClient(ssh.get_transport()) as scp:
+        archivos = Archivo.objects.filter(solicitud_id=solicitud.solicitud_id)
+        for archivo in archivos:
+            obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=archivo.url)
+            file_stream = BytesIO(obj['Body'].read())
+            scp.putfo(file_stream, f'/home/{archivo.url.split("/")[-1]}')
+
+@api_view(["POST"])
+def inicioProcesamientoSolicitud(request, id_solicitud):
+    if request.method == "POST":
+
+        try:
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "En proceso"
+            solicitud.fecha_procesamiento = datetime.now
+            solicitud.save
+            #Descarga de archivos de S3 
+            download_and_send_to_ec2(solicitud)
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email(
+                "DATACORE-SOLICITUD EN PROCESO",
+                solicitud.id_user_id,
+                "Su solicitud {solicitud.id_solicitud} se encuentra en la posición 1 y ha iniciado su procesamiento",
+            )
+
+            return Response(1)
+
+        except Solicitud.DoesNotExist:
+            return Response(
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@api_view(["POST"])
+@transaction.atomic
+def finProcesamientoSolicitud(request):
+    
+        try:
+            if request.method == "POST":
+                id_solicitud = request.data.get("id_solicitud")
+
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "Finalizada"
+            solicitud.fecha_finalizada = datetime.now
+            # Descolar del recurso
+            desencolar_solicitud(solicitud)
+
+            # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
+            zip_file = request.FILES['zip_file']
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+            s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
+            s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
+            s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+
+            # Guardar el enlace en la base de datos en la tabla Archivo
+            Archivo.objects.create(
+                    ruta=s3_url,
+                    id_solicitud=solicitud
+            )
 
             # Enviar correo una vez la solicitud ha sido cancelada
             enviar_email(
