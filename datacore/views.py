@@ -23,6 +23,7 @@ from django.conf import settings
 import os
 key_path = os.path.join(settings.BASE_DIR, 'key/linux-key.pem')
 import logging
+from urllib.parse import urlparse
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
@@ -251,8 +252,9 @@ def download_and_send_to_ec2(solicitud):
         print(solicitud.id_solicitud)
       
         for archivo in archivos:
-            print(archivo.ruta)
-            obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=archivo.ruta)
+            parsed_url = urlparse(archivo.ruta)
+            key = parsed_url.path.lstrip('/')
+            obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
             file_stream = BytesIO(obj['Body'].read())
             scp.putfo(file_stream, f'/home/{archivo.ruta.split("/")[-1]}')
 
