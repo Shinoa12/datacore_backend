@@ -20,6 +20,8 @@ from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
 import logging
+from django.db.models.functions import ExtractMonth
+from django.db.models import F,Count,Avg,DurationField, ExpressionWrapper
 from datetime import datetime
 from .models import (
     Facultad,
@@ -443,3 +445,46 @@ class AjustesViewSet(viewsets.ModelViewSet):
             )
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def requests_by_month(request):
+    data = Solicitud.objects.annotate(month=ExtractMonth('fecha_registro')).values('month').annotate(count=Count('id_solicitud')).order_by('month')
+    return Response(data)
+
+@api_view(['GET'])
+def requests_by_resource(request):
+    cpu_count = CPU.objects.annotate(count=Count('id_recurso')).count()
+    gpu_count = GPU.objects.annotate(count=Count('id_recurso')).count()
+    return Response({'CPU': cpu_count, 'GPU': gpu_count})
+
+@api_view(['GET'])
+def requests_by_specialty(request):
+    data = Especialidad.objects.annotate(count=Count('user__solicitud')).values('nombre', 'count')
+    return Response(data)
+
+
+@api_view(['GET'])
+def average_processing_duration(request):
+    data = Solicitud.objects.annotate(
+        processing_duration=ExpressionWrapper(
+            F('fecha_finalizada') - F('fecha_procesamiento'),
+            output_field=DurationField()
+        )
+    ).aggregate(
+        avg_duration=Avg('processing_duration')
+    )
+    return Response(data)
+@api_view(['GET'])
+def solicitudes_creadas(request):
+    count = Solicitud.objects.filter(estado_solicitud="Creada").count()
+    return Response({"count": count})
+
+@api_view(['GET'])
+def solicitudes_en_proceso(request):
+    count = Solicitud.objects.filter(estado_solicitud="En Proceso").count()
+    return Response({"count": count})
+
+@api_view(['GET'])
+def solicitudes_finalizadas(request):
+    count = Solicitud.objects.filter(estado_solicitud="Cancelada").count()
+    return Response({"count": count})
