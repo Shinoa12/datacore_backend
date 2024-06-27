@@ -10,8 +10,8 @@ curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http
 nombre_sh={{ user_bash }}
 
 echo nombre_sh
-sudo chmod +x nombre_sh
-./nombre_sh
+sudo chmod +x $nombre_sh
+./$nombre_sh
 
 # Verificar si existe la carpeta 'resultados'
 if [ -d "resultados" ]; then
