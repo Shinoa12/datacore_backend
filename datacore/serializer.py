@@ -91,7 +91,7 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
         # Determinar el tipo de recurso
         #resource_type = 'cpu' if isinstance(solicitud.id_recurso, CPU) else 'gpu'
-        resource_type = 'dcrsc1'
+        resource_type = 'resource1'
 
         # Renderizar el template con los datos de la solicitud
         slurm_script_content = render_to_string('./TemplateSLURM/slurm_script.sh', {
