@@ -262,15 +262,35 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
 
 @api_view(["POST"])
 @transaction.atomic
-def finProcesamientoSolicitud(request, id_solicitud):
-    if request.method == "POST":
-
+def finProcesamientoSolicitud(request):
+    
         try:
+            if request.method == "POST":
+                id_solicitud = request.data.get("id_solicitud")
+
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "Finalizada"
             solicitud.fecha_finalizada = datetime.now
             # Descolar del recurso
             desencolar_solicitud(solicitud)
+
+            # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
+            zip_file = request.FILES['zip_file']
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+            s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
+            s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
+            s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+
+            # Guardar el enlace en la base de datos en la tabla Archivo
+            Archivo.objects.create(
+                    ruta=s3_url,
+                    id_solicitud=solicitud
+            )
 
             # Enviar correo una vez la solicitud ha sido cancelada
             enviar_email(
