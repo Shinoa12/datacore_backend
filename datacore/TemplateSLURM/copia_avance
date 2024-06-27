@@ -1,13 +1,13 @@
 #!/bin/bash
-
-# Enviar inicio de ejecución al API
-curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://datacore/api/v1/InicioProcesamientoSolicitud/{{ solicitud.codigo_solicitud }}/
-
-#!/bin/bash
-#SBATCH --job-name={{ solicitud.codigo_solicitud }}
+#SBATCH --job-name={{ codigo_solicitud }}
 #SBATCH --output=output_%j.txt
 #SBATCH --error=error_%j.txt
 #SBATCH --partition={{ resource_type }}
+
+# Enviar inicio de ejecución al API
+curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/
+
+
 
 # Descargar los archivos desde las URLs
 curl -O {{ user_bash_url }}
