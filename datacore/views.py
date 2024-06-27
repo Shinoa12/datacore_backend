@@ -256,7 +256,7 @@ def download_and_send_to_ec2(solicitud):
             key = parsed_url.path.lstrip('/')
             obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
             file_stream = BytesIO(obj['Body'].read())
-            scp.putfo(file_stream, f'/home/{archivo.ruta.split("/")[-1]}')
+            scp.putfo(file_stream, f'/home/ubuntu/{archivo.ruta.split("/")[-1]}')
 
 @api_view(["POST"])
 def inicioProcesamientoSolicitud(request, id_solicitud):
