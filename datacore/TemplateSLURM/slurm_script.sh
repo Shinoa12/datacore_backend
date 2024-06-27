@@ -6,7 +6,7 @@
 
 
 # Enviar inicio de ejecución al API
-curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/
+curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/
 nombre_sh={{ user_bash }}
 
 sudo chmod +x nombre_sh
@@ -27,7 +27,7 @@ zip -r resultados.zip resultados
 
 # Enviar solicitud HTTP a la API para notificar el final del proceso
 
-curl -X POST -H "Content-Type: multipart/form-data" -F "status=finished" -F "id_solicitud={{ codigo_solicitud }}" -F "file=@resultados.zip" http://datacore/api/v1/FinProcesamientoSolicitud/
+curl -X POST -H "Content-Type: multipart/form-data" -F "status=finished" -F "id_solicitud={{ codigo_solicitud }}" -F "file=@resultados.zip" http://100.27.105.231:8001/datacore/api/v1/FinProcesamientoSolicitud/
 
 rm -rf resultados
 rm resultados.zip
