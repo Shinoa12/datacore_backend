@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Enviar inicio de ejecución al API
+curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://datacore/api/v1/InicioProcesamientoSolicitud/{{ solicitud.codigo_solicitud }}/
+
+#!/bin/bash
+#SBATCH --job-name={{ solicitud.codigo_solicitud }}
+#SBATCH --output=output_%j.txt
+#SBATCH --error=error_%j.txt
+#SBATCH --partition={{ resource_type }}
+
+# Descargar los archivos desde las URLs
+curl -O {{ user_bash_url }}
+curl -O {{ user_py_url }}
+
+# Dar permisos de ejecución al archivo .sh descargado
+chmod +x {{ user_bash_url | split('/')[-1] }}
+
+# Dar permisos de ejecución al archivo .sh descargado
+chmod +x {{ user_py_url | split('/')[-1] }}
+
+#copiar .py en la instancia para que el sh pueda ejecutarlo
+scp -i key/linux-key.pem {{ user_py_url | split('/')[-1] }} ubuntu@dcrsc1:/home/ubuntu/{{ user_py_url | split('/')[-1] }}
+
+
+# Agregar el fragmento adicional al inicio del script descargado para que pueda ejecutarse por slurm
+cat <<EOT > modified_{{ user_bash_url | split('/')[-1] }}
+#!/bin/bash
+#SBATCH --job-name=test_job
+#SBATCH --output=test_job_output.txt
+#SBATCH --error=test_job_error.txt
+#SBATCH --partition=resource1
+#SBATCH --ntasks=1
+#SBATCH --account=slurm
+#SBATCH --wrap="/bin/curl https://example.com"
+
+EOT
+
+# Añadir el contenido original del archivo descargado al nuevo archivo
+cat {{ user_bash_url | split('/')[-1] }} >> modified_{{ user_bash_url | split('/')[-1] }}
+
+# Ejecutar el script modificado
+sbatch modified_{{ user_bash_url | split('/')[-1] }}
+
+# Esperar a que el trabajo termine
+JOB_ID=$(sbatch modified_{{ user_bash_url | split('/')[-1] }} | awk '{print $4}')
+while true; do
+    JOB_STATE=$(sacct -j $JOB_ID --format=State --noheader | awk '{print $1}')
+    if [[ "$JOB_STATE" == "COMPLETED" || "$JOB_STATE" == "FAILED" || "$JOB_STATE" == "CANCELLED" ]]; then
+        break
+    fi
+    sleep 10
+done
+
+# Copiar el archivo de salida al sistema local
+scp -i key/linux-key.pem ubuntu@dcrsc1:test_job_output.txt .
+
+# Copiar el archivo al bucket S3 de AWS
+aws s3 cp test_job_output.txt s3://your-bucket/path/in/s3/
+
+# Eliminar el archivo de salida del sistema local
+rm test_job_output.txt
+
+
+# Enviar solicitud HTTP a la API para notificar el final del proceso
+curl -X POST -H "Content-Type: application/json" -d '{"status": "finished"}' http://datacore/api/v1/FinProcesamientoSolicitud/{{ solicitud.codigo_solicitud }}/
