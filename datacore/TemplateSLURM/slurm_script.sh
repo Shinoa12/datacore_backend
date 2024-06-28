@@ -11,8 +11,8 @@ nombre_sh={{ user_bash }}
 
 echo $nombre_sh > nombre.txt
 echo nombre_sh
-sudo chmod +x user_sh
-./user_sh
+sudo chmod +x user.sh
+./user.sh
 
 # Verificar si existe la carpeta 'resultados'
 if [ -d "resultados" ]; then
