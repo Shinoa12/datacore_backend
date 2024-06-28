@@ -275,7 +275,7 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
                 solicitud.id_user_id,
                 "Su solicitud {solicitud.id_solicitud} se encuentra en la posición 1 y ha iniciado su procesamiento",
             )
-            solicitud.save()
+            solicitud.save
             return Response(200)
 
         except Solicitud.DoesNotExist:
