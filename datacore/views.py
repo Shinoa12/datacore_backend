@@ -244,7 +244,7 @@ def download_and_send_to_ec2(solicitud):
     
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect('100.27.105.231', 'ubuntu', key_filename= key_path) #Conectar a EC2 requiere ip , username y key
+    ssh.connect(hostname='100.27.105.231', username='ubuntu', key_filename= key_path) #Conectar a EC2 requiere ip , username y key
 
     with SCPClient(ssh.get_transport()) as scp:
         archivos = Archivo.objects.filter(id_solicitud_id=solicitud.id_solicitud)
