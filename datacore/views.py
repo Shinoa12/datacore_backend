@@ -266,7 +266,7 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "En proceso"
             solicitud.fecha_procesamiento = datetime.now
-            solicitud.save()
+            solicitud.save
             #Descarga de archivos de S3 
             download_and_send_to_ec2(solicitud)
             # Enviar correo una vez la solicitud ha sido cancelada
