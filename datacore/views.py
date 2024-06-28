@@ -174,7 +174,7 @@ class ArchivoViewSet(viewsets.ModelViewSet):
     serializer_class = ArchivoSerializer
 
     def descargar(self, request, id_solicitud):
-        archivos = self.queryset.filter(id_solicitud_id=id_solicitud)
+        archivos = self.queryset.filter(id_solicitud_id=id_solicitud,ruta__contains="resultados.zip")
         serializer = self.get_serializer(archivos, many=True)
         return Response(serializer.data)
 
@@ -266,7 +266,7 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "En proceso"
             solicitud.fecha_procesamiento = datetime.now
-            solicitud.save
+            solicitud.save()
             #Descarga de archivos de S3 
             download_and_send_to_ec2(solicitud)
             # Enviar correo una vez la solicitud ha sido cancelada
@@ -276,7 +276,7 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
                 "Su solicitud {solicitud.id_solicitud} se encuentra en la posición 1 y ha iniciado su procesamiento",
             )
 
-            return Response(1)
+            return Response(200)
 
         except Solicitud.DoesNotExist:
             return Response(
