@@ -233,30 +233,65 @@ def cancelarSolicitud(request, id_solicitud):
 
 def download_and_send_to_ec2(solicitud):
 
+    # Obtener el objeto Recurso según la solicitud
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
+    # Configurar cliente S3 de AWS
     s3_client = boto3.client(
         's3',
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         region_name=settings.AWS_S3_REGION_NAME
     )
-    
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(hostname='100.27.105.231', username='ubuntu', key_filename= key_path) #Conectar a EC2 requiere ip , username y key
 
-    with SCPClient(ssh.get_transport()) as scp:
-        archivos = Archivo.objects.filter(id_solicitud_id=solicitud.id_solicitud)
-        print("INFORMACION LOG")
-        print(solicitud.id_solicitud)
-      
-        for archivo in archivos:
-            parsed_url = urlparse(archivo.ruta)
-            key = parsed_url.path.lstrip('/')
-            obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
-            file_stream = BytesIO(obj['Body'].read())
-            scp.putfo(file_stream, f'/home/ubuntu/{archivo.ruta.split("/")[-1]}')
+    # Configurar conexión SSH al servidor principal (EC2)
+    ssh_ec2 = paramiko.SSHClient()
+    ssh_ec2.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    key_path = '/ruta/a/tu/key.pem'  # Ruta a tu clave privada
+
+    try:
+        # Conectar al servidor principal (EC2)
+        ssh_ec2.connect(
+            hostname='100.27.105.231',
+            username='ubuntu',
+            key_filename=key_path
+        )
+
+        # Configurar canal SSH para el nodo de Slurm desde el servidor principal (EC2)
+        transport = ssh_ec2.get_transport()
+        dest_addr = ('dcrsc1', 22)  # Nodo de Slurm (hostname o IP y puerto)
+        local_addr = ('localhost', 22)
+        channel = transport.open_channel("direct-tcpip", dest_addr, local_addr)
+
+        # Conectar al nodo de Slurm desde el servidor principal usando el canal creado
+        ssh_slurm = paramiko.SSHClient()
+        ssh_slurm.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_slurm.connect(
+            hostname='dcrsc1',
+            username='ubuntu',
+            key_filename=key_path,
+            sock=channel
+        )
+
+        with SCPClient(ssh_slurm.get_transport()) as scp:
+            # Descargar archivos de S3 y subirlos al nodo de Slurm
+            archivos = Archivo.objects.filter(id_solicitud_id=solicitud.id_solicitud)
+            for archivo in archivos:
+                parsed_url = urlparse(archivo.ruta)
+                key = parsed_url.path.lstrip('/')
+                obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+                file_stream = BytesIO(obj['Body'].read())
+                # Subir archivo directamente al nodo de Slurm
+                scp.putfo(file_stream, f'/home/ubuntu/{archivo.ruta.split("/")[-1]}')
+
+    except paramiko.AuthenticationException as e:
+        print(f'Error de autenticación: {e}')
+    except paramiko.SSHException as e:
+        print(f'Error de SSH: {e}')
+    finally:
+        # Cerrar conexiones SSH al finalizar
+        ssh_slurm.close()
+        ssh_ec2.close()
 
 @api_view(["POST"])
 def inicioProcesamientoSolicitud(request, id_solicitud):
