@@ -233,29 +233,21 @@ def cancelarSolicitud(request, id_solicitud):
 
 def download_and_send_to_ec2(solicitud):
 
-    # Obtener el objeto Recurso según la solicitud
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
-    # Configurar cliente S3 de AWS
     s3_client = boto3.client(
         's3',
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         region_name=settings.AWS_S3_REGION_NAME
     )
-
-    # Configurar conexión SSH al servidor principal (EC2)
-    ssh_ec2 = paramiko.SSHClient()
-    ssh_ec2.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    key_path = '/ruta/a/tu/key.pem'  # Ruta a tu clave privada
+    
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
-        # Conectar al servidor principal (EC2)
-        ssh_ec2.connect(
-            hostname='100.27.105.231',
-            username='ubuntu',
-            key_filename=key_path
-        )
+        ssh.connect(hostname='100.27.105.231', username='ubuntu', key_filename= key_path) 
+        #Conectar a EC2 requiere ip , username y key
 
         # Configurar canal SSH para el nodo de Slurm desde el servidor principal (EC2)
         transport = ssh_ec2.get_transport()
