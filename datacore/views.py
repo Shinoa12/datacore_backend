@@ -20,6 +20,7 @@ from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
 from django.conf import settings
+import os
 key_path = os.path.join(settings.BASE_DIR, 'key/linux-key.pem')
 import logging
 
@@ -245,11 +246,11 @@ def download_and_send_to_ec2(solicitud):
     ssh.connect(recurso.direccion_ip, username=recurso.user, key_filename= key_path) #Conectar a EC2 requiere ip , username y key
 
     with SCPClient(ssh.get_transport()) as scp:
-        archivos = Archivo.objects.filter(solicitud_id=solicitud.solicitud_id)
+        archivos = Archivo.objects.filter(id_solicitu_id=solicitud.id_solicitud)
         for archivo in archivos:
-            obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=archivo.url)
+            obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=archivo.ruta)
             file_stream = BytesIO(obj['Body'].read())
-            scp.putfo(file_stream, f'/home/{archivo.url.split("/")[-1]}')
+            scp.putfo(file_stream, f'/home/{archivo.ruta.split("/")[-1]}')
 
 @api_view(["POST"])
 def inicioProcesamientoSolicitud(request, id_solicitud):
@@ -269,7 +270,7 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
                 "Su solicitud {solicitud.id_solicitud} se encuentra en la posición 1 y ha iniciado su procesamiento",
             )
 
-            return Response(1)
+            return Response(200)
 
         except Solicitud.DoesNotExist:
             return Response(
