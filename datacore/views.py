@@ -326,15 +326,18 @@ def finProcesamientoSolicitud(request):
         try:
             if request.method == "POST":
                 id_solicitud = request.data.get("id_solicitud")
+                print("Id de solicitud leida del request : " + id_solicitud)
 
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            print("Obteniendo solicitud de BD")
+
             solicitud.estado_solicitud = "Finalizada"
             solicitud.fecha_finalizada = datetime.now
             # Descolar del recurso
             desencolar_solicitud(solicitud)
 
             # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
-            zip_file = request.FILES['zip_file']
+            zip_file = request.FILES['file']
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
