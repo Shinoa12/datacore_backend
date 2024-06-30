@@ -3,7 +3,7 @@
 #SBATCH --output=test_job_output.txt
 #SBATCH --error=test_job_error.txt
 #SBATCH --account=slurm
-#SBATCH --partition=resource1
+#SBATCH --partition={{ resource_type }}
 
 # Ruta al archivo de log
 LOGFILE="script.log"
