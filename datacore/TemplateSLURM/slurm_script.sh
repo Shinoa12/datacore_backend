@@ -56,7 +56,7 @@ log "Creando un archivo zip con los resultados"
 zip -r resultados.zip resultados
 
 # Enviar solicitud HTTP a la API para notificar el final del proceso
-codigo_solicitud=100  # Reemplazar con el valor adecuado
+codigo_solicitud={{codigo_solicitud}}  # Reemplazar con el valor adecuado
 log "Enviando notificación de finalización al API"
 response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: multipart/form-data" -F "status=finished" -F "id_solicitud=$codigo_solicitud" -F "file=@resultados.zip" http://100.27.105.231:8001/datacore/api/v1/FinProcesamientoSolicitud/)
 
