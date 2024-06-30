@@ -4,8 +4,18 @@
 #SBATCH --error=test_job_error.txt
 #SBATCH --partition={{ resource_type }}
 
+echo "ESTO ES UNA PRUEBA"
 # Enviar inicio de ejecución al API
-curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/
+response=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/)
+
+# Verificar el código de respuesta del primer curl
+if [ "$response" -eq 200 ]; then
+  echo "Inicio de procesamiento notificado exitosamente. Código de respuesta: $response"
+else
+  echo "Error al notificar el inicio de procesamiento. Código de respuesta: $response"
+  exit 1
+fi
+
 
 # Verificar si user.sh existe y tiene permisos de ejecución
 if [ -f "user.sh" ]; then
