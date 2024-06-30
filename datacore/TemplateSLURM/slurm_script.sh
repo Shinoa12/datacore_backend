@@ -9,22 +9,18 @@ echo "ESTO ES UNA PRUEBA"
 #response=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/115/)
 
 # Verificar el código de respuesta del primer curl
-#if [ "$response" -eq 200 ]; then
+# if [ "$response" -eq 200 ]; then
 #  echo "Inicio de procesamiento notificado exitosamente. Código de respuesta: $response"
-#else
+# else
 #  echo "Error al notificar el inicio de procesamiento. Código de respuesta: $response"
 #  exit 1
-#fi
+# fi 
 
 
 # Verificar si user.sh existe y tiene permisos de ejecución
-if [ -f "user.sh" ]; then
-  sudo chmod +x user.sh
-  ./user.sh
-else
-  echo "El archivo user.sh no existe."
-  exit 1
-fi
+
+./user.sh
+
 
 # Verificar si existe la carpeta 'resultados'
 if [ -d "resultados" ]; then
