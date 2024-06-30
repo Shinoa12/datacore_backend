@@ -1,12 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name={{ codigo_solicitud }}
 #SBATCH --output=test_job_output.txt
 #SBATCH --error=test_job_error.txt
-#SBATCH --partition={{ resource_type }}
+#SBATCH --partition=resource1
 
 echo "ESTO ES UNA PRUEBA"
 # Enviar inicio de ejecución al API
-#response=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/115/)
+response=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/115/)
 
 # Verificar el código de respuesta del primer curl
 # if [ "$response" -eq 200 ]; then
@@ -14,11 +13,10 @@ echo "ESTO ES UNA PRUEBA"
 # else
 #  echo "Error al notificar el inicio de procesamiento. Código de respuesta: $response"
 #  exit 1
-# fi 
-
+# fi
 
 # Verificar si user.sh existe y tiene permisos de ejecución
-
+chmod +x user.sh
 ./user.sh
 
 
@@ -36,7 +34,7 @@ mv test_job_error.txt resultados/
 zip -r resultados.zip resultados
 
 # Enviar solicitud HTTP a la API para notificar el final del proceso
-#curl -X POST -H "Content-Type: multipart/form-data" -F "status=finished" -F "id_solicitud={{ codigo_solicitud }}" -F "file=@resultados.zip" http://100.27.105.231:8001/datacore/api/v1/FinProcesamientoSolicitud/
+#curl -X POST/
 
 #rm -rf resultados
 #rm resultados.zip
