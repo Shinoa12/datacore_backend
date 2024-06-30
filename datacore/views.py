@@ -169,14 +169,23 @@ class UsersViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class ArchivoViewSet(viewsets.ModelViewSet):
-    queryset = Archivo.objects.all()
-    serializer_class = ArchivoSerializer
-
-    def descargar(self, request, id_solicitud):
-        archivos = self.queryset.filter(id_solicitud_id=id_solicitud,ruta__contains="resultados.zip")
-        serializer = self.get_serializer(archivos, many=True)
-        return Response(serializer.data)
+@api_view(["POST"])
+def descargar(request, id_solicitud):
+    try:
+        # Filtrar el archivo con id_solicitud y ruta que contenga "resultados.zip"
+        archivo = Archivo.objects.get(id_solicitud_id=id_solicitud, ruta__contains="resultados.zip")
+        
+        # Serializar el objeto archivo
+        serializer = ArchivoSerializer(archivo)
+        
+        # Retornar el objeto serializado
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Archivo.DoesNotExist:
+        # Si no se encuentra el archivo, retornar un error 404
+        return Response({"error": "Archivo no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        # Manejar cualquier otro tipo de error
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SolicitudViewSet(viewsets.ModelViewSet):
