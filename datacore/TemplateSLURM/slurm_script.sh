@@ -69,7 +69,5 @@ fi
 
 # Limpiar archivos temporales
 log "Limpiando archivos temporales"
-rm -rf resultados
-rm resultados.zip
 
 log "Script completado"
