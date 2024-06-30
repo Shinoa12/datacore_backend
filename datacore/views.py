@@ -275,7 +275,9 @@ def download_and_send_to_ec2(solicitud):
                 obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
                 file_stream = BytesIO(obj['Body'].read())
                 # Subir archivo directamente al nodo de Slurm
-                scp.putfo(file_stream, f'/home/ubuntu/{os.path.basename(path)}')
+                filename = os.path.basename(path)
+                print(filename)
+                scp.putfo(file_stream, f'/home/ubuntu/{filename}')
 
     except paramiko.AuthenticationException as e:
         print(f'Error de autenticación: {e}')
