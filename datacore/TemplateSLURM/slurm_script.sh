@@ -7,10 +7,10 @@
 
 # Enviar inicio de ejecución al API
 curl -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/
-nombre_sh={{ user_bash }}
+# nombre_sh={{ user_bash }}
 
-echo $nombre_sh > nombre.txt
-echo nombre_sh
+# echo $nombre_sh > nombre.txt
+# echo nombre_sh
 sudo chmod +x user.sh
 ./user.sh
 
