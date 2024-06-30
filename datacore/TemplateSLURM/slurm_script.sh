@@ -22,7 +22,7 @@ log "Archivos en el directorio: $(ls -l)"
 
 # Enviar inicio de ejecución al API
 log "Inicio de copia de archivos"
-response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/100/)
+response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ solicitud.codigo_solicitud }}/)
 
 # Verificar si la solicitud fue exitosa
 if [ $response -eq 200 ]; then
