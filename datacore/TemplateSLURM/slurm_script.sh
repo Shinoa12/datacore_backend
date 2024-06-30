@@ -6,7 +6,7 @@
 
 echo "ESTO ES UNA PRUEBA"
 # Enviar inicio de ejecución al API
-response=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{ codigo_solicitud }}/)
+response=$(curl -o /dev/null -s -w "%{http_code}\n" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/115/)
 
 # Verificar el código de respuesta del primer curl
 if [ "$response" -eq 200 ]; then
