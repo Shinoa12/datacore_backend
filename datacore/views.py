@@ -295,8 +295,8 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "En proceso"
-            solicitud.fecha_procesamiento = datetime.now
-            solicitud.save
+            solicitud.fecha_procesamiento = datetime.now()
+            solicitud.save()
             #Descarga de archivos de S3 
             download_and_send_to_ec2(solicitud)
             # Enviar correo una vez la solicitud ha sido cancelada
@@ -328,31 +328,38 @@ def finProcesamientoSolicitud(request):
                 id_solicitud = request.data.get("id_solicitud")
                 print("Id de solicitud leida del request : " + id_solicitud)
             
-            solicitud = get_object_or_404(Solicitud, pk=id_solicitud)
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             print("Obteniendo solicitud de BD")
 
             solicitud.estado_solicitud = "Finalizada"
-            solicitud.fecha_finalizada = datetime.now
+            solicitud.fecha_finalizada = datetime.now()
             # Descolar del recurso
             desencolar_solicitud(solicitud)
+            print("DESENCOLADO COMPLETADO")
 
             # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
             zip_file = request.FILES['file']
+            print("Lectura del archivo file")
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                 region_name=settings.AWS_S3_REGION_NAME
             )
+            print("ACCEDIENDO AL S3")
+
             s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
             s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
             s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+
+            print("SUBIDA DE ARCHIVO RESULTADOS FINALIZADA EXITOSAMENTE")
 
             # Guardar el enlace en la base de datos en la tabla Archivo
             Archivo.objects.create(
                     ruta=s3_url,
                     id_solicitud=solicitud
             )
+            print("ALMACENADO DE URL DE RESULTADOS EN BD EN TABLA ARCHIVOS")
 
             # Enviar correo una vez la solicitud ha sido cancelada
             enviar_email(
