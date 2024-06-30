@@ -277,7 +277,7 @@ def download_and_send_to_ec2(solicitud):
                 # Subir archivo directamente al nodo de Slurm
                 filename = os.path.basename(path)
                 print("NOMBRE DEL ARCHIVO QUE SE CREA PARA ENVIAR AL RECURSO EC2" + filename)
-                scp.putfo(file_stream, f'/home/ubuntu/datacore/{filename}')
+                scp.putfo(file_stream, f'/home/ubuntu/{filename}')
 
     except paramiko.AuthenticationException as e:
         print(f'Error de autenticación: {e}')

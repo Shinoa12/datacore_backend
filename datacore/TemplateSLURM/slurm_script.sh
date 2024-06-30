@@ -5,15 +5,8 @@
 #SBATCH --account=slurm
 #SBATCH --partition={{ resource_type }}
 
-# Definir un directorio de trabajo
-WORKDIR=/home/ubuntu/datacore/
-LOGFILE="$WORKDIR/script.log"
-
-# Crear el directorio de trabajo si no existe
-mkdir -p $WORKDIR
-
-# Moverse al directorio de trabajo
-cd $WORKDIR
+# Ruta al archivo de log
+LOGFILE="script.log"
 
 # Función para registrar mensajes en el archivo de log
 log() {
@@ -27,10 +20,11 @@ log "Usuario: $(whoami)"
 log "Directorio actual: $(pwd)"
 log "Archivos en el directorio: $(ls -l)"
 
-# Notificar al API sobre el inicio del proceso
+# Enviar inicio de ejecución al API
 log "Inicio de copia de archivos"
 response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"status": "started"}' http://100.27.105.231:8001/datacore/api/v1/InicioProcesamientoSolicitud/{{codigo_solicitud}}/)
 
+# Verificar si la solicitud fue exitosa
 if [ $response -eq 200 ]; then
     log "Notificación de inicio enviada exitosamente"
 else
@@ -39,7 +33,7 @@ fi
 
 # Cambiar permisos y ejecutar user.sh
 log "Cambiando permisos y ejecutando user.sh"
-chmod +x $WORKDIR/user.sh
+sudo chmod +x user.sh
 log "Permisos cambiados, ejecutando user.sh"
 ./user.sh
 log "user.sh ejecutado"
@@ -61,10 +55,12 @@ mv test_job_error.txt resultados/
 log "Creando un archivo zip con los resultados"
 zip -r resultados.zip resultados
 
-# Notificar al API sobre el final del proceso
+# Enviar solicitud HTTP a la API para notificar el final del proceso
+codigo_solicitud=100  # Reemplazar con el valor adecuado
 log "Enviando notificación de finalización al API"
-response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: multipart/form-data" -F "status=finished" -F "id_solicitud={{ codigo_solicitud }}" -F "file=@resultados.zip" http://100.27.105.231:8001/datacore/api/v1/FinProcesamientoSolicitud/)
+response=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: multipart/form-data" -F "status=finished" -F "id_solicitud=$codigo_solicitud" -F "file=@resultados.zip" http://100.27.105.231:8001/datacore/api/v1/FinProcesamientoSolicitud/)
 
+# Verificar si la solicitud fue exitosa
 if [ $response -eq 200 ]; then
     log "Notificación de finalización enviada exitosamente"
 else
@@ -75,4 +71,3 @@ fi
 log "Limpiando archivos temporales"
 
 log "Script completado"
-
