@@ -328,7 +328,7 @@ def finProcesamientoSolicitud(request):
                 id_solicitud = request.data.get("id_solicitud")
                 print("Id de solicitud leida del request : " + id_solicitud)
 
-            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud = Solicitud.objects.get(id_solicitud = int(id_solicitud))
             print("Obteniendo solicitud de BD")
 
             solicitud.estado_solicitud = "Finalizada"
