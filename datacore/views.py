@@ -250,7 +250,7 @@ def download_and_send_to_ec2(solicitud):
         #Conectar a EC2 requiere ip , username y key
 
         # Configurar canal SSH para el nodo de Slurm desde el servidor principal (EC2)
-        transport = ssh_ec2.get_transport()
+        transport = ssh.get_transport()
         dest_addr = ('dcrsc1', 22)  # Nodo de Slurm (hostname o IP y puerto)
         local_addr = ('localhost', 22)
         channel = transport.open_channel("direct-tcpip", dest_addr, local_addr)
@@ -283,7 +283,7 @@ def download_and_send_to_ec2(solicitud):
     finally:
         # Cerrar conexiones SSH al finalizar
         ssh_slurm.close()
-        ssh_ec2.close()
+        ssh.close()
 
 @api_view(["POST"])
 def inicioProcesamientoSolicitud(request, id_solicitud):
