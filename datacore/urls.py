@@ -74,7 +74,7 @@ urlpatterns = [
         name="inicioProcesamientoSolicitud",
     ),
     path(
-        "api/v1/FinProcesamientoSolicitud/<int:id_solicitud>/",
+        "api/v1/FinProcesamientoSolicitud/",
         views.finProcesamientoSolicitud,
         name="finProcesamientoSolicitud",
     ),
