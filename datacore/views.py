@@ -169,7 +169,7 @@ class UsersViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-@api_view(["POST"])
+@api_view(["GET"])
 def descargar(request, id_solicitud):
     try:
         # Filtrar el archivo con id_solicitud y ruta que contenga "resultados.zip"
