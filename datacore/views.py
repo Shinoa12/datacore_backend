@@ -169,14 +169,23 @@ class UsersViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class ArchivoViewSet(viewsets.ModelViewSet):
-    queryset = Archivo.objects.all()
-    serializer_class = ArchivoSerializer
-
-    def descargar(self, request, id_solicitud):
-        archivos = self.queryset.filter(id_solicitud_id=id_solicitud,ruta__contains="resultados.zip")
-        serializer = self.get_serializer(archivos, many=True)
-        return Response(serializer.data)
+@api_view(["GET"])
+def descargar(request, id_solicitud):
+    try:
+        # Filtrar el archivo con id_solicitud y ruta que contenga "resultados.zip"
+        archivo = Archivo.objects.get(id_solicitud_id=id_solicitud, ruta__contains="resultados.zip")
+        
+        # Serializar el objeto archivo
+        serializer = ArchivoSerializer(archivo)
+        
+        # Retornar el objeto serializado
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Archivo.DoesNotExist:
+        # Si no se encuentra el archivo, retornar un error 404
+        return Response({"error": "Archivo no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        # Manejar cualquier otro tipo de error
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SolicitudViewSet(viewsets.ModelViewSet):
@@ -270,11 +279,14 @@ def download_and_send_to_ec2(solicitud):
             archivos = Archivo.objects.filter(id_solicitud_id=solicitud.id_solicitud)
             for archivo in archivos:
                 parsed_url = urlparse(archivo.ruta)
+                path = parsed_url.path
                 key = parsed_url.path.lstrip('/')
                 obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
                 file_stream = BytesIO(obj['Body'].read())
                 # Subir archivo directamente al nodo de Slurm
-                scp.putfo(file_stream, f'/home/ubuntu/{archivo.ruta.split("/")[-1]}')
+                filename = os.path.basename(path)
+                print("NOMBRE DEL ARCHIVO QUE SE CREA PARA ENVIAR AL RECURSO EC2" + filename)
+                scp.putfo(file_stream, f'/home/ubuntu/Datacore/backend/datacore_prod/{filename}')
 
     except paramiko.AuthenticationException as e:
         print(f'Error de autenticación: {e}')
@@ -289,8 +301,8 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "En proceso"
-            solicitud.fecha_procesamiento = datetime.now
-            solicitud.save
+            solicitud.fecha_procesamiento = datetime.now()
+            solicitud.save()
             #Descarga de archivos de S3 
             download_and_send_to_ec2(solicitud)
             # Enviar correo una vez la solicitud ha sido cancelada
@@ -320,30 +332,40 @@ def finProcesamientoSolicitud(request):
         try:
             if request.method == "POST":
                 id_solicitud = request.data.get("id_solicitud")
-
+                print("Id de solicitud leida del request : " + id_solicitud)
+            
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            print("Obteniendo solicitud de BD")
+
             solicitud.estado_solicitud = "Finalizada"
-            solicitud.fecha_finalizada = datetime.now
+            solicitud.fecha_finalizada = datetime.now()
             # Descolar del recurso
             desencolar_solicitud(solicitud)
+            print("DESENCOLADO COMPLETADO")
 
             # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
-            zip_file = request.FILES['zip_file']
+            zip_file = request.FILES['file']
+            print("Lectura del archivo file")
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
                 region_name=settings.AWS_S3_REGION_NAME
             )
+            print("ACCEDIENDO AL S3")
+
             s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
             s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
             s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+
+            print("SUBIDA DE ARCHIVO RESULTADOS FINALIZADA EXITOSAMENTE")
 
             # Guardar el enlace en la base de datos en la tabla Archivo
             Archivo.objects.create(
                     ruta=s3_url,
                     id_solicitud=solicitud
             )
+            print("ALMACENADO DE URL DE RESULTADOS EN BD EN TABLA ARCHIVOS")
 
             # Enviar correo una vez la solicitud ha sido cancelada
             enviar_email(
@@ -419,7 +441,6 @@ def desencolar_solicitud(solicitud):
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
     posicion_original = solicitud.posicion_cola
-    solicitud.estado_solicitud = "Cancelada"
     solicitud.posicion_cola = 0
     solicitud.save()
 

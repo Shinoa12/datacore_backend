@@ -15,8 +15,6 @@ getAllSolicitudes = views.SolicitudViewSet.as_view({"get": "list_por_usuario"})
 
 getSolicitudDetalle = views.SolicitudViewSet.as_view({"get": "detalle_solicitud"})
 
-getSolicitudResultado = views.ArchivoViewSet.as_view({"get": "descargar"})
-
 
 router = routers.DefaultRouter()
 
@@ -28,7 +26,6 @@ router.register(r"gpus", views.GPUViewSet, "gpus")
 router.register(r"users", views.UsersViewSet, "users")
 router.register(r"solicitudes", views.SolicitudViewSet, "solicitudes")
 router.register(r"historial", views.HistorialViewSet, "historial")
-router.register(r"archivos", views.ArchivoViewSet, "archivos")
 router.register(r"herramientas", views.HerramientaViewSet, "herramientas")
 router.register(r"librerias", views.LibreriaViewSet, "librerias")
 router.register(r"ajustes", views.AjustesViewSet, "ajustes")
@@ -60,7 +57,7 @@ urlpatterns = [
     ),
     path(
         "api/v1/getSolicitudResultado/<int:id_solicitud>/",
-        getSolicitudResultado,
+        views.descargar,
         name="getSolicitudResultado",
     ),
     path(
@@ -74,7 +71,7 @@ urlpatterns = [
         name="inicioProcesamientoSolicitud",
     ),
     path(
-        "api/v1/FinProcesamientoSolicitud/<int:id_solicitud>/",
+        "api/v1/FinProcesamientoSolicitud/",
         views.finProcesamientoSolicitud,
         name="finProcesamientoSolicitud",
     ),
