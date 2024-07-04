@@ -287,7 +287,7 @@ class RecursoDetalleSerializer(serializers.ModelSerializer):
         model = Recurso
         fields = ["id_recurso", "tamano_ram"]
 
-
+# Cargar detalle de solicitud
 class SolicitudDetalleSerializer(serializers.ModelSerializer):
     recurso = RecursoDetalleSerializer(read_only=True)
     nombre = serializers.SerializerMethodField()
@@ -384,6 +384,8 @@ class SolicitudesSerializer(serializers.ModelSerializer):
         return ""
 
     def get_duracion(self, obj):
+        if obj.estado_solicitud != 'finalizado':
+            return ""
         duracion = obj.fecha_finalizada - obj.fecha_procesamiento
         return str(duracion)
 
