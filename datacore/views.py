@@ -342,7 +342,7 @@ def finProcesamientoSolicitud(request):
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             print("Obteniendo solicitud de BD")
             
-            if(solicitud.estado_solicitud != "Cancelada"): 
+            if(solicitud.estado_solicitud == "En Proceso"): 
                 solicitud.estado_solicitud = "Finalizada"
                 solicitud.fecha_finalizada = datetime.now()
                 # Descolar del recurso
