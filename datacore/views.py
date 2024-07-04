@@ -303,6 +303,7 @@ def download_and_send_to_ec2(solicitud):
 def inicioProcesamientoSolicitud(request, id_solicitud):
     if request.method == "POST":
         solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+        print("ESTADO :" + solicitud.estado_solicitud)
         if(solicitud.estado_solicitud == "Creada"):
             try:
                 solicitud.estado_solicitud = "En proceso"
