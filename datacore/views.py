@@ -19,7 +19,25 @@ from rest_framework.permissions import IsAuthenticated
 from datacore.permissions import IsAdmin, IsUser
 from django.contrib.auth.models import Group
 from .utils import enviar_email
+from django.conf import settings
+import os
+key_path = os.path.join(settings.BASE_DIR, 'key/linux-key.pem')
 import logging
+from urllib.parse import urlparse
+
+import boto3
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+import paramiko
+from scp import SCPClient
+from io import BytesIO
+from datetime import datetime
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
+from django.db.models.functions import ExtractMonth
+from django.db.models import F,Count,Avg,DurationField, ExpressionWrapper
+
 from datetime import datetime
 from .models import (
     Facultad,
@@ -33,6 +51,7 @@ from .models import (
     Recurso,
     Herramienta,
     Libreria,
+    Ajustes,
 )
 from .serializer import (
     FacultadSerializer,
@@ -48,6 +67,7 @@ from .serializer import (
     SolicitudDetalleSerializer,
     HerramientaSerializer,
     LibreriaSerializer,
+    AjustesSerializer,
 )
 
 
@@ -103,6 +123,12 @@ class CPUViewSet(viewsets.ModelViewSet):
         serializer = HerramientaSerializer(herramientas, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"])
+    def habilitados(self, request):
+        cpus = CPU.objects.filter(id_recurso__estado=True)
+        serializer = self.get_serializer(cpus, many=True)
+        return Response(serializer.data)
+
 
 class GPUViewSet(viewsets.ModelViewSet):
     queryset = GPU.objects.all()
@@ -117,6 +143,12 @@ class GPUViewSet(viewsets.ModelViewSet):
         gpu = self.get_object()
         herramientas = gpu.id_recurso.herramientas.all()
         serializer = HerramientaSerializer(herramientas, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def habilitados(self, request):
+        gpus = GPU.objects.filter(id_recurso__estado=True)
+        serializer = self.get_serializer(gpus, many=True)
         return Response(serializer.data)
 
 
@@ -137,14 +169,23 @@ class UsersViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class ArchivoViewSet(viewsets.ModelViewSet):
-    queryset = Archivo.objects.all()
-    serializer_class = ArchivoSerializer
-
-    def descargar(self, request, id_solicitud):
-        archivos = self.queryset.filter(id_solicitud_id=id_solicitud, ruta__contains="resultados.zip")
-        serializer = self.get_serializer(archivos, many=True)
-        return Response(serializer.data)
+@api_view(["GET"])
+def descargar(request, id_solicitud):
+    try:
+        # Filtrar el archivo con id_solicitud y ruta que contenga "resultados.zip"
+        archivo = Archivo.objects.get(id_solicitud_id=id_solicitud, ruta__contains="resultados.zip")
+        
+        # Serializar el objeto archivo
+        serializer = ArchivoSerializer(archivo)
+        
+        # Retornar el objeto serializado
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Archivo.DoesNotExist:
+        # Si no se encuentra el archivo, retornar un error 404
+        return Response({"error": "Archivo no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        # Manejar cualquier otro tipo de error
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SolicitudViewSet(viewsets.ModelViewSet):
@@ -152,7 +193,9 @@ class SolicitudViewSet(viewsets.ModelViewSet):
     serializer_class = SolicitudSerializer
 
     def list_por_usuario(self, request, id_user):
-        solicitudes = self.queryset.filter(id_user_id=id_user).order_by("-fecha_registro")
+        solicitudes = self.queryset.filter(id_user_id=id_user).order_by(
+            "-fecha_registro"
+        )
         serializer = SolicitudesSerializer(solicitudes, many=True)
         return Response(serializer.data)
 
@@ -173,6 +216,7 @@ def cancelarSolicitud(request, id_solicitud):
 
         try:
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "Cancelada"
             # Descolar del recurso
             desencolar_solicitud(solicitud)
 
@@ -181,6 +225,157 @@ def cancelarSolicitud(request, id_solicitud):
                 "DATACORE-SOLICITUD CANCELADA",
                 solicitud.id_user_id,
                 "Su solicitud ha sido cancelada.",
+            )
+
+            return Response(SolicitudSerializer(solicitud).data)
+
+        except Solicitud.DoesNotExist:
+            return Response(
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+def download_and_send_to_ec2(solicitud):
+
+    recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
+
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name=settings.AWS_S3_REGION_NAME
+    )
+    
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ 
+    try:
+        ssh.connect(hostname='100.27.105.231', username='ubuntu', key_filename= key_path) 
+        #Conectar a EC2 requiere ip , username y key
+
+        # Configurar canal SSH para el nodo de Slurm desde el servidor principal (EC2)
+        transport = ssh.get_transport()
+        dest_addr = (recurso.user, 22)  # Nodo de Slurm (hostname o IP y puerto)
+        local_addr = ('localhost', 22)
+        channel = transport.open_channel("direct-tcpip", dest_addr, local_addr)
+
+        # Conectar al nodo de Slurm desde el servidor principal usando el canal creado
+        ssh_slurm = paramiko.SSHClient()
+        ssh_slurm.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_slurm.connect(
+            hostname=recurso.user,
+            username='ubuntu',
+            key_filename=key_path,
+            sock=channel
+        )
+
+        with SCPClient(ssh_slurm.get_transport()) as scp:
+            # Descargar archivos de S3 y subirlos al nodo de Slurm
+            archivos = Archivo.objects.filter(id_solicitud_id=solicitud.id_solicitud)
+            for archivo in archivos:
+                parsed_url = urlparse(archivo.ruta)
+                path = parsed_url.path
+                key = parsed_url.path.lstrip('/')
+                obj = s3_client.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=key)
+                file_stream = BytesIO(obj['Body'].read())
+                # Subir archivo directamente al nodo de Slurm
+                filename = os.path.basename(path)
+                print("NOMBRE DEL ARCHIVO QUE SE CREA PARA ENVIAR AL RECURSO EC2" + filename)
+                scp.putfo(file_stream, f'/home/ubuntu/Datacore/backend/datacore_prod/{filename}')
+
+    except paramiko.AuthenticationException as e:
+        print(f'Error de autenticación: {e}')
+    except paramiko.SSHException as e:
+        print(f'Error de SSH: {e}')
+    finally:
+        # Cerrar conexiones SSH al finalizar
+        ssh_slurm.close()
+        ssh.close()
+
+
+@api_view(["POST"])
+def inicioProcesamientoSolicitud(request, id_solicitud):
+    if request.method == "POST":
+
+        try:
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            solicitud.estado_solicitud = "En proceso"
+            solicitud.fecha_procesamiento = datetime.now()
+            solicitud.save()
+            #Descarga de archivos de S3 
+            download_and_send_to_ec2(solicitud)
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email(
+                "DATACORE-SOLICITUD EN PROCESO",
+                solicitud.id_user_id,
+                "Su solicitud " + str(solicitud.id_solicitud) + " se encuentra en la posición 1 y ha iniciado su procesamiento",
+            )
+            
+            return Response(200)
+
+        except Solicitud.DoesNotExist:
+            return Response(
+                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+@api_view(["POST"])
+@transaction.atomic
+def finProcesamientoSolicitud(request):
+    
+        try:
+            if request.method == "POST":
+                id_solicitud = request.data.get("id_solicitud")
+                print("Id de solicitud leida del request : " + id_solicitud)
+            
+            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+            print("Obteniendo solicitud de BD")
+
+            solicitud.estado_solicitud = "Finalizada"
+            solicitud.fecha_finalizada = datetime.now()
+            # Descolar del recurso
+            desencolar_solicitud(solicitud)
+            print("DESENCOLADO COMPLETADO")
+
+            # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
+            zip_file = request.FILES['file']
+            print("Lectura del archivo file")
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+            print("ACCEDIENDO AL S3")
+
+            s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
+            s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
+            s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+
+            print("SUBIDA DE ARCHIVO RESULTADOS FINALIZADA EXITOSAMENTE")
+
+            # Guardar el enlace en la base de datos en la tabla Archivo
+            Archivo.objects.create(
+                    ruta=s3_url,
+                    id_solicitud=solicitud
+            )
+            print("ALMACENADO DE URL DE RESULTADOS EN BD EN TABLA ARCHIVOS")
+
+            # Enviar correo una vez la solicitud ha sido cancelada
+            enviar_email(
+                "DATACORE-SOLICITUD FINALIZADA",
+                solicitud.id_user_id,
+                "Su solicitud ha finalizado.",
             )
 
             return Response(SolicitudSerializer(solicitud).data)
@@ -250,7 +445,6 @@ def desencolar_solicitud(solicitud):
     recurso = get_object_or_404(Recurso, pk=solicitud.id_recurso_id)
 
     posicion_original = solicitud.posicion_cola
-    solicitud.estado_solicitud = "Cancelada"
     solicitud.posicion_cola = 0
     solicitud.save()
 
@@ -300,8 +494,8 @@ def authenticate_or_create_user(email, fname, lname):
         )
         default_group = Group.objects.get(name="USER")
         user.groups.add(default_group)
-        is_new_user=True
-    return user,  is_new_user
+        is_new_user = True
+    return user, is_new_user
 
 
 class LoginWithGoogle(APIView):
@@ -319,8 +513,9 @@ class LoginWithGoogle(APIView):
                 first_name = id_token.get("given_name", "")
                 last_name = id_token.get("family_name", "")
 
-
-                user, is_new_user = authenticate_or_create_user(user_email, first_name, last_name)
+                user, is_new_user = authenticate_or_create_user(
+                    user_email, first_name, last_name
+                )
                 token = AccessToken.for_user(user)
                 refresh = RefreshToken.for_user(user)
 
@@ -334,7 +529,7 @@ class LoginWithGoogle(APIView):
                         "is_admin": user.groups.filter(name="ADMIN").exists(),
                         "estado": user.id_estado_persona.id_estado_persona,
                         "id_user": user.id,
-                        "is_new_user":is_new_user
+                        "is_new_user": is_new_user,
                     }
                 )
             return Response(
@@ -358,21 +553,114 @@ class UserOnlyView(APIView):
 
     def get(self, request):
         return Response({"message": "Hello, user!"})
-    
-@api_view(['POST'])
+
+
+@api_view(["POST"])
 def enviar_email_view(request):
     try:
-        asunto = request.data.get('asunto')
-        id_user = request.data.get('id_user')
-        mensaje = request.data.get('mensaje')
+        asunto = request.data.get("asunto")
+        id_user = request.data.get("id_user")
+        mensaje = request.data.get("mensaje")
 
         if not asunto or not id_user or not mensaje:
-            return Response({"error": "Todos los campos son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Todos los campos son requeridos."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         enviar_email(asunto, id_user, mensaje)
-        return Response({"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Correo enviado exitosamente."}, status=status.HTTP_200_OK
+        )
 
     except ValueError as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AjustesViewSet(viewsets.ModelViewSet):
+    queryset = Ajustes.objects.all()
+    serializer_class = AjustesSerializer
+
+    @action(detail=False, methods=["get"], url_path="codigo/(?P<codigo>\w+)")
+    def get_by_code(self, request, codigo=None):
+        try:
+            ajuste = self.queryset.get(codigo=codigo)
+            serializer = self.serializer_class(ajuste)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Ajustes.DoesNotExist:
+            return Response(
+                {"error": f"Ajuste '{codigo}' no encontrado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["put"], url_path="actualizar-varios")
+    def bulk_update(self, request):
+        data = request.data
+
+        try:
+            for item in data:
+                id = item.get("id")
+                ajuste = self.queryset.get(id=id)
+                serializer = self.serializer_class(ajuste, data=item)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {"message": "Tabla actualizada correctamente"},
+                status=status.HTTP_200_OK,
+            )
+        except Ajustes.DoesNotExist:
+            return Response(
+                {"error": "Uno o más de los ajustes no existe."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def requests_by_month(request):
+    data = Solicitud.objects.annotate(month=ExtractMonth('fecha_registro')).values('month').annotate(count=Count('id_solicitud')).order_by('month')
+    return Response(data)
+
+@api_view(['GET'])
+def requests_by_resource(request):
+    cpu_count = CPU.objects.annotate(count=Count('id_recurso')).count()
+    gpu_count = GPU.objects.annotate(count=Count('id_recurso')).count()
+    return Response({'CPU': cpu_count, 'GPU': gpu_count})
+
+@api_view(['GET'])
+def requests_by_specialty(request):
+    data = Especialidad.objects.annotate(count=Count('user__solicitud')).values('nombre', 'count')
+    return Response(data)
+
+
+@api_view(['GET'])
+def average_processing_duration(request):
+    data = Solicitud.objects.annotate(
+        processing_duration=ExpressionWrapper(
+            F('fecha_finalizada') - F('fecha_procesamiento'),
+            output_field=DurationField()
+        )
+    ).aggregate(
+        avg_duration=Avg('processing_duration')
+    )
+    return Response(data)
+@api_view(['GET'])
+def solicitudes_creadas(request):
+    count = Solicitud.objects.filter(estado_solicitud="Creada").count()
+    return Response({"count": count})
+
+@api_view(['GET'])
+def solicitudes_en_proceso(request):
+    count = Solicitud.objects.filter(estado_solicitud="En Proceso").count()
+    return Response({"count": count})
+
+@api_view(['GET'])
+def solicitudes_finalizadas(request):
+    count = Solicitud.objects.filter(estado_solicitud="Cancelada").count()
+    return Response({"count": count})
