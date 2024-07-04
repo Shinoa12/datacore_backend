@@ -373,9 +373,9 @@ def finProcesamientoSolicitud(request):
 
             # Enviar correo una vez la solicitud ha sido cancelada
             enviar_email(
-                "DATACORE-SOLICITUD CANCELADA",
+                "DATACORE-SOLICITUD FINALIZADA",
                 solicitud.id_user_id,
-                "Su solicitud ha sido cancelada.",
+                "Su solicitud ha finalizado.",
             )
 
             return Response(SolicitudSerializer(solicitud).data)
