@@ -313,7 +313,7 @@ def inicioProcesamientoSolicitud(request, id_solicitud):
             enviar_email(
                 "DATACORE-SOLICITUD EN PROCESO",
                 solicitud.id_user_id,
-                "Su solicitud {solicitud.id_solicitud} se encuentra en la posición 1 y ha iniciado su procesamiento",
+                "Su solicitud " + str(solicitud.id_solicitud) + " se encuentra en la posición 1 y ha iniciado su procesamiento",
             )
             
             return Response(200)
