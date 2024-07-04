@@ -218,6 +218,7 @@ def cancelarSolicitud(request, id_solicitud):
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             solicitud.estado_solicitud = "Cancelada"
             # Descolar del recurso
+            
             desencolar_solicitud(solicitud)
 
             # Enviar correo una vez la solicitud ha sido cancelada
@@ -340,43 +341,46 @@ def finProcesamientoSolicitud(request):
             
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             print("Obteniendo solicitud de BD")
+            
+            if(solicitud.estado_solicitud != "Cancelada"): 
+                solicitud.estado_solicitud = "Finalizada"
+                solicitud.fecha_finalizada = datetime.now()
+                # Descolar del recurso
+                desencolar_solicitud(solicitud)
+                print("DESENCOLADO COMPLETADO")
 
-            solicitud.estado_solicitud = "Finalizada"
-            solicitud.fecha_finalizada = datetime.now()
-            # Descolar del recurso
-            desencolar_solicitud(solicitud)
-            print("DESENCOLADO COMPLETADO")
+                # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
+                zip_file = request.FILES['file']
+                print("Lectura del archivo file")
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                    region_name=settings.AWS_S3_REGION_NAME
+                )
+                print("ACCEDIENDO AL S3")
 
-            # SUBIR A S3 LOS ARCHIVOS ENVIADOS EN EL REQUEST QUE ESTAN EN UN ZIP
-            zip_file = request.FILES['file']
-            print("Lectura del archivo file")
-            s3_client = boto3.client(
-                's3',
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
-            )
-            print("ACCEDIENDO AL S3")
+                s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
+                s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
+                s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
 
-            s3_key = f"archivos/{solicitud.id_solicitud}/{zip_file.name}"
-            s3_client.upload_fileobj(zip_file, settings.AWS_STORAGE_BUCKET_NAME, s3_key)
-            s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+                print("SUBIDA DE ARCHIVO RESULTADOS FINALIZADA EXITOSAMENTE")
 
-            print("SUBIDA DE ARCHIVO RESULTADOS FINALIZADA EXITOSAMENTE")
+                # Guardar el enlace en la base de datos en la tabla Archivo
+                Archivo.objects.create(
+                        ruta=s3_url,
+                        id_solicitud=solicitud
+                )
+                print("ALMACENADO DE URL DE RESULTADOS EN BD EN TABLA ARCHIVOS")
 
-            # Guardar el enlace en la base de datos en la tabla Archivo
-            Archivo.objects.create(
-                    ruta=s3_url,
-                    id_solicitud=solicitud
-            )
-            print("ALMACENADO DE URL DE RESULTADOS EN BD EN TABLA ARCHIVOS")
+                # Enviar correo una vez la solicitud ha sido cancelada
+                enviar_email(
+                    "DATACORE-SOLICITUD FINALIZADA",
+                    solicitud.id_user_id,
+                    "Su solicitud ha finalizado.",
+                )
+            
 
-            # Enviar correo una vez la solicitud ha sido cancelada
-            enviar_email(
-                "DATACORE-SOLICITUD FINALIZADA",
-                solicitud.id_user_id,
-                "Su solicitud ha finalizado.",
-            )
 
             return Response(SolicitudSerializer(solicitud).data)
 
