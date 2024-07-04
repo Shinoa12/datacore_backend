@@ -31,12 +31,12 @@ else
     log "Error al enviar la notificación de inicio"
 fi
 
-# Cambiar permisos y ejecutar user.sh
-log "Cambiando permisos y ejecutando user.sh"
-sudo chmod +x user.sh
-log "Permisos cambiados, ejecutando user.sh"
-./user.sh
-log "user.sh ejecutado"
+# Cambiar permisos y ejecutar {{ user_bash }}
+log "Cambiando permisos y ejecutando {{ user_bash }}"
+sudo chmod +x {{ user_bash }}
+log "Permisos cambiados, ejecutando {{ user_bash }}"
+./{{ user_bash }}
+log "{{ user_bash }} ejecutado"
 
 # Verificar si existe la carpeta 'resultados'
 if [ -d "resultados" ]; then
