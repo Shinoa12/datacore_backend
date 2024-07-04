@@ -292,6 +292,10 @@ def download_and_send_to_ec2(solicitud):
         print(f'Error de autenticación: {e}')
     except paramiko.SSHException as e:
         print(f'Error de SSH: {e}')
+    finally:
+        # Cerrar conexiones SSH al finalizar
+        ssh_slurm.close()
+        ssh.close()
 
 
 @api_view(["POST"])
