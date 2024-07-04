@@ -342,7 +342,7 @@ def finProcesamientoSolicitud(request):
             solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
             print("Obteniendo solicitud de BD")
             
-            if(solicitud.estado_solicitud == "En Proceso"): 
+            if(solicitud.estado_solicitud == "En proceso"): 
                 solicitud.estado_solicitud = "Finalizada"
                 solicitud.fecha_finalizada = datetime.now()
                 # Descolar del recurso
@@ -661,7 +661,7 @@ def solicitudes_creadas(request):
 
 @api_view(['GET'])
 def solicitudes_en_proceso(request):
-    count = Solicitud.objects.filter(estado_solicitud="En Proceso").count()
+    count = Solicitud.objects.filter(estado_solicitud="En proceso").count()
     return Response({"count": count})
 
 @api_view(['GET'])
