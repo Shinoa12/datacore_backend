@@ -142,7 +142,7 @@ class ArchivoViewSet(viewsets.ModelViewSet):
     serializer_class = ArchivoSerializer
 
     def descargar(self, request, id_solicitud):
-        archivos = self.queryset.filter(id_solicitud_id=id_solicitud)
+        archivos = self.queryset.filter(id_solicitud_id=id_solicitud, ruta__contains="resultados.zip")
         serializer = self.get_serializer(archivos, many=True)
         return Response(serializer.data)
 
