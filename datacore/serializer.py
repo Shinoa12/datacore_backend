@@ -382,6 +382,8 @@ class SolicitudesSerializer(serializers.ModelSerializer):
         return ""
 
     def get_duracion(self, obj):
+        if obj.estado_solicitud != 'Finalizada':
+            return ""
         duracion = obj.fecha_finalizada - obj.fecha_procesamiento
         return str(duracion)
 
