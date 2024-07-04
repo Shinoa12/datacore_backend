@@ -253,14 +253,14 @@ def download_and_send_to_ec2(solicitud):
     
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+ 
     try:
         ssh.connect(hostname='100.27.105.231', username='ubuntu', key_filename= key_path) 
         #Conectar a EC2 requiere ip , username y key
 
         # Configurar canal SSH para el nodo de Slurm desde el servidor principal (EC2)
         transport = ssh.get_transport()
-        dest_addr = ('dcrsc1', 22)  # Nodo de Slurm (hostname o IP y puerto)
+        dest_addr = (recurso.user, 22)  # Nodo de Slurm (hostname o IP y puerto)
         local_addr = ('localhost', 22)
         channel = transport.open_channel("direct-tcpip", dest_addr, local_addr)
 
@@ -268,7 +268,7 @@ def download_and_send_to_ec2(solicitud):
         ssh_slurm = paramiko.SSHClient()
         ssh_slurm.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh_slurm.connect(
-            hostname='dcrsc1',
+            hostname=recurso.user,
             username='ubuntu',
             key_filename=key_path,
             sock=channel
