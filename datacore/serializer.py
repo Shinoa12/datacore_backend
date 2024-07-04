@@ -92,7 +92,17 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
         # Determinar el tipo de recurso
         #resource_type = 'cpu' if isinstance(solicitud.id_recurso, CPU) else 'gpu'
-        resource_type = 'resource1'
+        try:
+            cpu = CPU.objects.get(id_recurso=validated_data["id_recurso"])
+            cpu_nombre = cpu.nombre
+        except CPU.DoesNotExist:
+            raise serializers.ValidationError("El recurso especificado no es un CPU válido")
+
+        # Asignar el valor adecuado a la variable resource_type
+        if cpu_nombre == "CPU Test":
+            resource_type = "resource1"
+        if cpu_nombre == "CPU Test 2":
+            resource_type = "resource2"
 
         # Renderizar el template con los datos de la solicitud
         slurm_script_content = render_to_string('slurm_script.sh', {

@@ -297,6 +297,7 @@ def download_and_send_to_ec2(solicitud):
         ssh_slurm.close()
         ssh.close()
 
+
 @api_view(["POST"])
 def inicioProcesamientoSolicitud(request, id_solicitud):
     if request.method == "POST":
