@@ -302,33 +302,33 @@ def download_and_send_to_ec2(solicitud):
 @api_view(["POST"])
 def inicioProcesamientoSolicitud(request, id_solicitud):
     if request.method == "POST":
-
-        try:
-            solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
-            solicitud.estado_solicitud = "En proceso"
-            solicitud.fecha_procesamiento = datetime.now()
-            solicitud.save()
-            #Descarga de archivos de S3 
-            download_and_send_to_ec2(solicitud)
-            # Enviar correo una vez la solicitud ha sido cancelada
-            enviar_email(
-                "DATACORE-SOLICITUD EN PROCESO",
-                solicitud.id_user_id,
-                "Su solicitud " + str(solicitud.id_solicitud) + " se encuentra en la posición 1 y ha iniciado su procesamiento",
-            )
+        solicitud = Solicitud.objects.get(id_solicitud=id_solicitud)
+        if(solicitud.estado_solicitud == "Creada"):
+            try:
+                solicitud.estado_solicitud = "En proceso"
+                solicitud.fecha_procesamiento = datetime.now()
+                solicitud.save()
+                #Descarga de archivos de S3 
+                download_and_send_to_ec2(solicitud)
+                # Enviar correo una vez la solicitud ha sido cancelada
+                enviar_email(
+                    "DATACORE-SOLICITUD EN PROCESO",
+                    solicitud.id_user_id,
+                    "Su solicitud " + str(solicitud.id_solicitud) + " se encuentra en la posición 1 y ha iniciado su procesamiento",
+                )
             
-            return Response(200)
+                return Response(200)
 
-        except Solicitud.DoesNotExist:
-            return Response(
-                {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
-            )
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            except Solicitud.DoesNotExist:
+                return Response(
+                    {"error": "Solicitud no encontrada"}, status=status.HTTP_404_NOT_FOUND
+                )
+            except ValueError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response(
+                    {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
 @api_view(["POST"])
 @transaction.atomic
