@@ -92,14 +92,12 @@ class CreateSolicitudSerializer(serializers.ModelSerializer):
 
         # Determinar el tipo de recurso
         #resource_type = 'cpu' if isinstance(solicitud.id_recurso, CPU) else 'gpu'
+    
+        recursoTraido=validated_data["id_recurso"]
         try:
-            recurso = Recurso.objects.get(id_recurso=validated_data["id_recurso"])
-            
-           
+            recurso = Recurso.objects.get(id_recurso=recursoTraido.id_recurso)
         except Recurso.DoesNotExist:
             raise serializers.ValidationError("El recurso especificado no es válido")
-
-
         # Renderizar el template con los datos de la solicitud
         slurm_script_content = render_to_string('slurm_script.sh', {
             'codigo_solicitud': solicitud.id_solicitud,
