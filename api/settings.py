@@ -229,3 +229,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jccaceresh.98@gmail.com'
 EMAIL_HOST_PASSWORD = 'hxyi lcyi cmei kllm'
 DEFAULT_FROM_EMAIL = 'jccaceresh.98@gmail.com'
+
+
+#S3 SERVICE
+AWS_ACCESS_KEY_ID = 'AKIA3FLD56ECUZ7P7AVE'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_STORAGE_BUCKET_NAME = 'datacorepucp'
+AWS_S3_REGION_NAME= 'us-east-1'
