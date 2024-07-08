@@ -666,5 +666,5 @@ def solicitudes_en_proceso(request):
 
 @api_view(['GET'])
 def solicitudes_finalizadas(request):
-    count = Solicitud.objects.filter(estado_solicitud="Cancelada").count()
+    count = Solicitud.objects.filter(estado_solicitud="Finalizada").count()
     return Response({"count": count})
